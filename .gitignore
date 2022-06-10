@@ -18,6 +18,9 @@
 !*.hpp
 !*.hxx
 
+# python file
+!*.py
+
 # text file
 !*.md
 !.gitignore
