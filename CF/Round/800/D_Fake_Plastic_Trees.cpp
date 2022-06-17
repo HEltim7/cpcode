@@ -14,9 +14,8 @@ LL l[N],r[N],val[N];
 void solve() {
     int n;
     cin>>n;
-    memset(ind,0,sizeof (int)*(n+1));
-    memset(val,0,sizeof (LL)*(n+1));
     queue<int> q;
+    memset(val,0,sizeof (LL)*(n+1));
     for(int i=2;i<=n;i++) cin>>p[i],ind[p[i]]++;
     for(int i=1;i<=n;i++) cin>>l[i]>>r[i];
     for(int i=1;i<=n;i++) if(!ind[i]) q.push(i);
@@ -29,8 +28,7 @@ void solve() {
         else ans++,tmp=r[u];
         if(u!=1) {
             val[p[u]]+=tmp;
-            ind[p[u]]--;
-            if(ind[p[u]]==0) q.push(p[u]);
+            if(--ind[p[u]]==0) q.push(p[u]);
         }
     }
     cout<<ans<<endl;

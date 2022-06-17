@@ -11,15 +11,10 @@ LL arr[N];
 void solve() {
     int n;
     cin>>n;
-    LL sum=0,maxx=0;
-    for(int i=1;i<=n;i++) cin>>arr[i],sum+=arr[i],maxx=max(maxx,arr[i]);
-    arr[n+1]=0;
+    LL sum=0;
+    for(int i=1;i<=n;i++) cin>>arr[i],sum+=arr[i];
     if(sum) {
         cout<<"No"<<endl;
-        return;
-    }
-    if(maxx==0) {
-        cout<<"Yes"<<endl;
         return;
     }
     for(int i=n;i>=1;i--) {
@@ -35,8 +30,6 @@ void solve() {
             break;
         }
     }
-
-    sum=0;
     for(int i=n;i>=1;i--) {
         sum-=arr[i];
         if(sum<0) {
