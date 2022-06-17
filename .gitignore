@@ -25,6 +25,9 @@
 !*.md
 !.gitignore
 
+# config
+!*_snippets.json
+
 # re-ignore
 .vscode
 .cph
