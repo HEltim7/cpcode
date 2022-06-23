@@ -33,10 +33,15 @@
 			"#define endl '\\n'",
 			"using LL=long long;",
 			"",
+			"void solve() {",
+			"    $0",
+			"}",
+			"",
 			"int main() {",
 			"    ios::sync_with_stdio(0);",
 			"    cin.tie(nullptr);",
-			"    $0",
+			"    solve();",
+			"    return 0;",
 			"}",
 		],
 		"description": "C++ 头文件和默认参数",
@@ -286,9 +291,9 @@
 	"quick power": {
 		"prefix": "#qpow",
 		"body": [
-			"LL qpow(LL a,LL b){",
+			"LL qpow(LL a,LL b) {",
 			"    LL res=1;",
-			"    while(b){",
+			"    while(b) {",
 			"        if(b&1) res=res*a${1:%mod};",
 			"        b>>=1;",
 			"        a=a*a${1:%mod};",
@@ -840,5 +845,3 @@
 		],
 		"description": "EK minimum cost maximum flow",
 	},
-
-}
