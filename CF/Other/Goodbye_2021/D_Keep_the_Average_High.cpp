@@ -2,6 +2,7 @@
 #include<vector>
 #include<iostream>
 #include<algorithm>
+#include<cstring>
 using namespace std;
 
 #define endl '\n'
@@ -12,9 +13,11 @@ void solve() {
     int n,x,ans=0;
     array<int,N> arr,dp[2];
     cin>>n;
+    memset(dp[0].begin(),0,sizeof (int)*(n+2));
+    memset(dp[1].begin(),0,sizeof (int)*(n+2));
     for(int i=1;i<=n;i++) cin>>arr[i];
     cin>>x;
-    for(int i=1,pre=0;i<=n+1;i++) {
+    for(int i=1;i<=n+1;i++) {
         if(i>=2&&arr[i]+arr[i-1]>=2*x) dp[1][i]=dp[0][i-2]+2;
         if(i>=3&&arr[i]+arr[i-1]>=2*x&&arr[i]+arr[i-1]+arr[i-2]>=3*x)
             dp[1][i]=max(dp[1][i],dp[1][i-1]+1);
