@@ -15,9 +15,13 @@ void solve() {
     for(int i=1;i<=2*n;i++)
         for(int j=1;j<=2*n;j++) {
             cin>>grid[i][j];
-            if(i>n&&j>n) ans+=grid[i][j];
+            if(i>n&&j>n||i<=n&&j<=n) ans+=grid[i][j];
         }
-    
+    int res=min({
+        grid[1][n+1],grid[1][2*n],grid[n][n+1],grid[n][2*n],
+        grid[n+1][1],grid[2*n][1],grid[n+1][n],grid[2*n][n]
+    });
+    cout<<ans+res<<endl;
 }
 
 int main() {
