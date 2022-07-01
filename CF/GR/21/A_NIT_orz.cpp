@@ -5,24 +5,17 @@ using namespace std;
 
 #define endl '\n'
 using LL=long long;
-const int N=1e4+10;
-int cnt[N];
 
 void solve() {
     int n;
-    cin>>n;
-    int res=0,cnts=0;
-    vector<int> arr;
+    LL z,ans=0;
+    cin>>n>>z;
     for(int i=1;i<=n;i++) {
-        int in;
+        LL in;
         cin>>in;
-        arr.push_back(in);
-        cnt[in]++;
-        if(cnt[in]==1) res++;
-        else cnts++;
+        ans=max(ans,in|z);
     }
-    for(auto x:arr) cnt[x]=0;
-    cout<<res-(cnts&1)<<endl;
+    cout<<ans<<endl;
 }
 
 int main() {

@@ -5,24 +5,19 @@ using namespace std;
 
 #define endl '\n'
 using LL=long long;
-const int N=1e4+10;
-int cnt[N];
 
 void solve() {
     int n;
     cin>>n;
-    int res=0,cnts=0;
-    vector<int> arr;
+    int seg=0;
+    bool pre=0;
     for(int i=1;i<=n;i++) {
         int in;
         cin>>in;
-        arr.push_back(in);
-        cnt[in]++;
-        if(cnt[in]==1) res++;
-        else cnts++;
+        if(in&&!pre) seg++,pre=1;
+        if(!in) pre=0;
     }
-    for(auto x:arr) cnt[x]=0;
-    cout<<res-(cnts&1)<<endl;
+    cout<<min(seg,2)<<endl;
 }
 
 int main() {
