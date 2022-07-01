@@ -105,7 +105,7 @@ namespace debug {
             stream.output(" = ");
         }
 
-        ~NameLogger() { stream.endline(); stream.output("--- end of debugging log ---"); }
+        // ~NameLogger() { stream.endline(); stream.output("--- end of debugging log ---"); }
 
     } static logn(0);
 
