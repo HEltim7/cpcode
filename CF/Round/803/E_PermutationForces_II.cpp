@@ -13,10 +13,10 @@ void solve() {
     int n,s;
     LL ans=1;
     cin>>n>>s;
+    vector<int> A,B;
     for(int i=1;i<=n;i++) cin>>a[i];
     for(int i=1;i<=n;i++) cin>>b[i];
     for(int i=1;i<=n;i++) if(b[i]!=-1&&a[i]-b[i]>s) ans=0;
-    vector<int> A,B;
     for(int i=1;i<=n;i++) if(b[i]!=-1) mark[b[i]]=1;
     for(int i=1;i<=n;i++) if(!mark[i]) B.push_back(i); else mark[i]=0;
     for(int i=1;i<=n;i++) if(b[i]!=-1) mark[a[i]]=1;
