@@ -3,31 +3,28 @@
 #include<algorithm>
 #include<queue>
 #include<cstring>
+#include<cassert>
 using namespace std;
 
 #define endl '\n'
 using LL=long long;
-const int N=1e4+10,L=55;
+const int N=1e4+10,K=1e3+10;
 struct NODE {
     int cnt,next;
-    int ch[26];
-    bool passed;
-    void init() {
-        cnt=next=passed=0;
-        memset(ch,0,sizeof ch);
-    }
-} tr[N*L];
+    int ch[3];
+} tr[N];
 int idx;
+int dp[K][N];
 
 int new_node() {
-    tr[++idx].init();
-    return idx;
+    assert(idx<N);
+    return ++idx;
 }
 
 void add(string &s) {
     int root=0;
     for(int j=0;j<s.length();j++) {
-        int c=s[j]-'a';
+        int c=s[j]-'A';
         if(!tr[root].ch[c]) 
             tr[root].ch[c]=new_node();
         root=tr[root].ch[c];
@@ -37,17 +34,19 @@ void add(string &s) {
 
 void build() {
     queue<int> q;
-    for(int i=0;i<26;i++) 
-        if(tr[0].ch[i]) q.push(tr[0].ch[i]);
+    for(int i=0;i<3;i++) 
+        if(tr[0].ch[i]) 
+            q.push(tr[0].ch[i]);
     while(q.size()) {
         auto root=q.front();
         q.pop();
-        for(int i=0;i<26;i++) {
+        for(int i=0;i<3;i++) {
             int &cur=tr[root].ch[i];
             int pre=tr[tr[root].next].ch[i];
             if(!cur) cur=pre;
             else {
                 tr[cur].next=pre;
+                tr[cur].cnt+=tr[pre].cnt;
                 q.push(cur);
             }
         }
@@ -55,38 +54,32 @@ void build() {
 }
 
 void solve() {
-    tr[0].init();
-    idx=0;
-    int n;
-    cin>>n;
+    int n,k;
+    cin>>n>>k;
     for(int i=1;i<=n;i++) {
         string in;
         cin>>in;
         add(in);
     }
     build();
-    string s;
-    cin>>s;
-    int ans=0;
-    for(int i=0,j=0;i<s.length();i++) {
-        int c=s[i]-'a';
-        j=tr[j].ch[c];
-        int t=j;
-        while(t&&!tr[t].passed) {
-            tr[t].passed=1;
-            ans+=tr[t].cnt;
-            tr[t].cnt=0;
-            t=tr[t].next;
+    for(int i=0;i<=k;i++) memset(dp[i],0xcf,sizeof (int)*(idx+1));
+    dp[0][0]=0;
+    for(int i=0;i<k;i++) {
+        for(int j=0;j<=idx;j++) {
+            for(int k=0;k<3;k++) {
+                int cur=tr[j].ch[k];
+                dp[i+1][cur]=max(dp[i+1][cur],tr[cur].cnt+dp[i][j]);
+            }
         }
     }
-    cout<<ans<<endl;
+    int ans=0;
+    for(int i=0;i<=idx;i++) ans=max(ans,dp[k][i]);
+    cout<<ans;
 }
 
 int main() {
     ios::sync_with_stdio(0);
     cin.tie(nullptr);
-    int t;
-    cin>>t;
-    while(t--) solve();
+    solve();
     return 0;
 }

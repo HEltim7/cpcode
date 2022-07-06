@@ -3,28 +3,26 @@
 #include<algorithm>
 #include<queue>
 #include<cstring>
+#include<cassert>
 using namespace std;
 
 #define endl '\n'
 using LL=long long;
-const int N=1e4+10,L=55;
+const int N=1e5+10;
 struct NODE {
-    int cnt,next;
+    int id,next;
     int ch[26];
-    bool passed;
-    void init() {
-        cnt=next=passed=0;
-        memset(ch,0,sizeof ch);
-    }
-} tr[N*L];
+} tr[N];
 int idx;
+string str[N];
 
 int new_node() {
-    tr[++idx].init();
-    return idx;
+    assert(idx<N);
+    return ++idx;
 }
 
-void add(string &s) {
+void add(int id) {
+    auto &s=str[id];
     int root=0;
     for(int j=0;j<s.length();j++) {
         int c=s[j]-'a';
@@ -32,7 +30,7 @@ void add(string &s) {
             tr[root].ch[c]=new_node();
         root=tr[root].ch[c];
     }
-    tr[root].cnt++;
+    tr[root].id=id;
 }
 
 void build() {
@@ -55,29 +53,26 @@ void build() {
 }
 
 void solve() {
-    tr[0].init();
-    idx=0;
+    string s;
+    cin>>s;
     int n;
     cin>>n;
     for(int i=1;i<=n;i++) {
-        string in;
-        cin>>in;
-        add(in);
+        cin>>str[i];
+        add(i);
     }
     build();
-    string s;
-    cin>>s;
-    int ans=0;
+    vector<int> state(1,0);
+    string ans;
     for(int i=0,j=0;i<s.length();i++) {
+        j=state.back();
         int c=s[i]-'a';
         j=tr[j].ch[c];
-        int t=j;
-        while(t&&!tr[t].passed) {
-            tr[t].passed=1;
-            ans+=tr[t].cnt;
-            tr[t].cnt=0;
-            t=tr[t].next;
-        }
+        ans.push_back(s[i]);
+        state.push_back(j);
+        if(tr[j].id) 
+            for(auto x:str[tr[j].id])
+                state.pop_back(),ans.pop_back();
     }
     cout<<ans<<endl;
 }
@@ -85,8 +80,6 @@ void solve() {
 int main() {
     ios::sync_with_stdio(0);
     cin.tie(nullptr);
-    int t;
-    cin>>t;
-    while(t--) solve();
+    solve();
     return 0;
 }

@@ -7,16 +7,16 @@ using namespace std;
 
 #define endl '\n'
 using LL=long long;
-const int N=1e4+10,L=55;
+const int N=1e6+10;
 struct NODE {
     int cnt,next;
     int ch[26];
     bool passed;
     void init() {
-        cnt=next=passed=0;
+        cnt=next=0;
         memset(ch,0,sizeof ch);
     }
-} tr[N*L];
+} tr[N];
 int idx;
 
 int new_node() {
@@ -85,8 +85,6 @@ void solve() {
 int main() {
     ios::sync_with_stdio(0);
     cin.tie(nullptr);
-    int t;
-    cin>>t;
-    while(t--) solve();
+    solve();
     return 0;
 }

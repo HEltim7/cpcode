@@ -7,24 +7,25 @@ using namespace std;
 
 #define endl '\n'
 using LL=long long;
-const int N=1e4+10,L=55;
+const int N=155,L=70;
 struct NODE {
     int cnt,next;
     int ch[26];
-    bool passed;
     void init() {
-        cnt=next=passed=0;
+        cnt=next=0;
         memset(ch,0,sizeof ch);
     }
-} tr[N*L];
-int idx;
+} tr[N*L+10];
+string str[N];
+int idx,ans[N];
 
 int new_node() {
     tr[++idx].init();
     return idx;
 }
 
-void add(string &s) {
+void add(int id) {
+    string &s=str[id];
     int root=0;
     for(int j=0;j<s.length();j++) {
         int c=s[j]-'a';
@@ -32,7 +33,7 @@ void add(string &s) {
             tr[root].ch[c]=new_node();
         root=tr[root].ch[c];
     }
-    tr[root].cnt++;
+    tr[root].cnt=id;
 }
 
 void build() {
@@ -54,39 +55,36 @@ void build() {
     }
 }
 
-void solve() {
+void solve(int n) {
+    memset(ans,0,sizeof ans);
     tr[0].init();
     idx=0;
-    int n;
-    cin>>n;
     for(int i=1;i<=n;i++) {
-        string in;
-        cin>>in;
-        add(in);
+        cin>>str[i];
+        add(i);
     }
     build();
     string s;
     cin>>s;
-    int ans=0;
     for(int i=0,j=0;i<s.length();i++) {
         int c=s[i]-'a';
         j=tr[j].ch[c];
         int t=j;
-        while(t&&!tr[t].passed) {
-            tr[t].passed=1;
-            ans+=tr[t].cnt;
-            tr[t].cnt=0;
+        while(t) {
+            ans[tr[t].cnt]++;
             t=tr[t].next;
         }
     }
-    cout<<ans<<endl;
+    int maxx=0;
+    for(int i=1;i<=n;i++) maxx=max(maxx,ans[i]);
+    cout<<maxx<<endl;
+    for(int i=1;i<=n;i++) if(ans[i]==maxx) cout<<str[i]<<endl;
 }
 
 int main() {
     ios::sync_with_stdio(0);
     cin.tie(nullptr);
-    int t;
-    cin>>t;
-    while(t--) solve();
+    int n;
+    while(cin>>n&&n) solve(n);
     return 0;
 }

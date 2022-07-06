@@ -3,28 +3,27 @@
 #include<algorithm>
 #include<queue>
 #include<cstring>
+#include<cassert>
 using namespace std;
 
 #define endl '\n'
 using LL=long long;
-const int N=1e4+10,L=55;
+const int N=1e6+10;
 struct NODE {
     int cnt,next;
     int ch[26];
-    bool passed;
-    void init() {
-        cnt=next=passed=0;
-        memset(ch,0,sizeof ch);
-    }
-} tr[N*L];
-int idx;
+} tr[N];
+string str[N];
+int idx,pos[N];
+vector<int> bak;
 
 int new_node() {
-    tr[++idx].init();
-    return idx;
+    assert(idx<N);
+    return ++idx;
 }
 
-void add(string &s) {
+void add(int id) {
+    string &s=str[id];
     int root=0;
     for(int j=0;j<s.length();j++) {
         int c=s[j]-'a';
@@ -32,13 +31,14 @@ void add(string &s) {
             tr[root].ch[c]=new_node();
         root=tr[root].ch[c];
     }
-    tr[root].cnt++;
+    pos[id]=root;
 }
 
 void build() {
     queue<int> q;
     for(int i=0;i<26;i++) 
-        if(tr[0].ch[i]) q.push(tr[0].ch[i]);
+        if(tr[0].ch[i]) 
+            q.push(tr[0].ch[i]),bak.push_back(tr[0].ch[i]);
     while(q.size()) {
         auto root=q.front();
         q.pop();
@@ -49,44 +49,39 @@ void build() {
             else {
                 tr[cur].next=pre;
                 q.push(cur);
+                bak.push_back(cur);
             }
         }
     }
 }
 
 void solve() {
-    tr[0].init();
-    idx=0;
     int n;
     cin>>n;
     for(int i=1;i<=n;i++) {
-        string in;
-        cin>>in;
-        add(in);
+        cin>>str[i];
+        add(i);
     }
     build();
-    string s;
-    cin>>s;
-    int ans=0;
-    for(int i=0,j=0;i<s.length();i++) {
-        int c=s[i]-'a';
-        j=tr[j].ch[c];
-        int t=j;
-        while(t&&!tr[t].passed) {
-            tr[t].passed=1;
-            ans+=tr[t].cnt;
-            tr[t].cnt=0;
-            t=tr[t].next;
+    for(int k=1;k<=n;k++) {
+        auto &s=str[k];
+        for(int i=0,j=0;i<s.length();i++) {
+            int c=s[i]-'a';
+            j=tr[j].ch[c];
+            tr[j].cnt++;
         }
     }
-    cout<<ans<<endl;
+    while(bak.size()) {
+        auto t=bak.back();
+        bak.pop_back();
+        tr[tr[t].next].cnt+=tr[t].cnt;
+    }
+    for(int i=1;i<=n;i++) cout<<tr[pos[i]].cnt<<endl;
 }
 
 int main() {
     ios::sync_with_stdio(0);
     cin.tie(nullptr);
-    int t;
-    cin>>t;
-    while(t--) solve();
+    solve();
     return 0;
 }
