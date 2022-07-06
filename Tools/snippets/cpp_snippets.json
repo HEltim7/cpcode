@@ -907,4 +907,12 @@
 			"        flow+=mf[T],cost+=mf[T]*d[T];",
 			"        for(int i=T;i!=S;i=e[pre[i]^1]){",
 			"            f[pre[i]]-=mf[T];",
-			"            f[pre[i]^1]+=mf[T];"
+			"            f[pre[i]^1]+=mf[T];",
+			"        }",
+			"    }",
+			"}",
+		],
+		"description": "EK minimum cost maximum flow",
+	},
+
+}
