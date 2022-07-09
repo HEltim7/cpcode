@@ -304,7 +304,7 @@
 		"description": "quick power O(logn)",
 	},	
 
-	"discrete_binary_search": {
+	"discrete (binary search)": {
 		"prefix": "#discrete_bs",
 		"body": [
 			"sort(${1:num}.begin(),${1:num}.end());",
@@ -348,8 +348,8 @@
 	},
 	
 
-	"树链剖分": {
-		"prefix": "#shulian",
+	"heavy path decomposition": {
+		"prefix": "#heavy-path-decomposition",
 		"body": [
 			"const int N=${1:1e5+10},M=N*2;",
 			"int h[N],w[N],e[M],ne[M],idx;",

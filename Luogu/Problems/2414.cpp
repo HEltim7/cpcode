@@ -2,10 +2,12 @@
 #include<iostream>
 #include<algorithm>
 #include<queue>
+#include<tuple>
 using namespace std;
 
 #define endl '\n'
 using LL=long long;
+using TIII=tuple<int,int,int>;
 
 struct ACAM {
     const static int A=26;
@@ -71,7 +73,33 @@ struct ACAM {
 };
 
 void solve() {
-    
+    ACAM acam;
+    string txt,s;
+    cin>>txt;
+    for(auto x:txt) 
+        if(x=='B') s.pop_back();
+        else s.push_back(x);
+    txt.clear();
+    for(auto x:s) {
+        if(x=='P') acam.insert(txt),txt.clear();
+        else txt.push_back(x);
+    }
+    acam.build();
+
+    int m;
+    cin>>m;
+    vector<TIII> querys;
+    vector<int> ans(m+1,0);
+    for(int i=1;i<=m;i++) {
+        int a,b;
+        cin>>a>>b;
+        querys.emplace_back(a,b,i);
+    }
+    sort(querys.begin(),querys.end());
+    int last=0;
+    for(auto [a,b,id]:querys) {
+        
+    }
 }
 
 int main() {
