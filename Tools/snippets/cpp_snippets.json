@@ -637,7 +637,7 @@
 			"    int size() { return tr.size(); }",
 			"",
 			"    ACAM() { tr.resize(1); }",
-			"    ACAM(int sz) { tr.reserve(sz); }",
+			"    ACAM(int sz) { tr.reserve(sz+1),tr.push_back({}); }",
 			"};",
 		],
 		"description": "Aho-Corasick Automaton",
