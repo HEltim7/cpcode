@@ -14,7 +14,7 @@ int trie_id[N],ans[N];
 
 // #define ONLINE_JUDGE
 #ifndef ONLINE_JUDGE
-#include<debug>
+#include<heltim7/debug>
 #else
 #define debug(...)
 #endif
@@ -103,10 +103,10 @@ struct ACAM {
                 q.push(cur);
             }
         }
-        debug(this->size());
-        label.resize(this->size());
-        label_end.resize(this->size());
-        this->relable(0);
+        debug(size());
+        label.resize(size());
+        label_end.resize(size());
+        relable(0);
     }
 
     void match(int u) {
