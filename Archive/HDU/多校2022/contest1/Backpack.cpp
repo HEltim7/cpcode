@@ -1,23 +1,16 @@
+#pragma GCC optimize("Ofast,unroll-loops")
+#pragma GCC target("avx2,bmi,bmi2,lzcnt,popcnt")
+#include <cstdio>
 #include <vector>
 #include <iostream>
 #include <algorithm>
-#include <queue>
-#include <cstring>
+#include <bitset>
 using namespace std;
 
-#define endl '\n'
 using LL=long long;
-const int N=(1<<10)+10,H=9;
-int v[N],w[N],n,m;
-bool pre[N][N],suf[N][N],mark[N][N];
-
-struct Node {
-    int ch[2][2]; //ch[0]不选，ch[1]=选，-1非法
-    bool val[2]; //val[x]=x是否可行
-    void init() {
-        val[0]=val[1]=0;
-    }
-} dp[N][N];
+const int N=1<<10,M=N+10;
+int v[M],w[M];
+bitset<N> dp[2][M];
 
 // #define ONLINE_JUDGE
 #ifndef ONLINE_JUDGE
@@ -26,94 +19,47 @@ struct Node {
 #define debug(...)
 #endif
 
-bool getbit(int x,int bit) {
-    return x&(1<<bit);
-}
+namespace io {
+    const int MAXBUF = 1e5;
+    char buf[MAXBUF], *pl, *pr;
 
-void bfs(int bit) {
-    memset(mark, 0, sizeof mark);
-    queue<pair<int,int>> q;
-    q.emplace(n,m);
-    while(q.size()) {
-        int i=q.front().first;
-        int j=q.front().second;
-        q.pop();
-        if(mark[i][j]) continue;
-        else mark[i][j]=1;
+    #define gc() \
+    (pl == pr && (pr = (pl = buf) + fread(buf, 1, MAXBUF, stdin), pl == pr) \
+    ? EOF : *pl++)
 
-        auto &cur=dp[i][j];
-
-    }
-}
-
-void cal(int bit) {
-    for(int i=1;i<=n;i++)
-        for(int j=1;j<=m;j++) {
-            auto &cur=dp[i][j];
-            cur.init();
-            for(int k=0;k<2;k++) {
-                int s=cur.ch[k][0];
-                if(s!=-1&&dp[i-1][s].val[k]) cur.val[k]=1;
-                s=cur.ch[k][1];
-                if(s!=-1&&dp[i-1][s].val[k]^getbit(w[i], bit)) cur.val[k]=1;
-            }
+    template<typename T> T rd(T &x) {
+        x = 0;
+        T f = 1;
+        char c = gc();
+        while (!isdigit(c)) {
+            if (c == '-') f = -1;
+            c = gc();
         }
+        while (isdigit(c)) x = x * 10 + (c ^ 48), c = gc();
+        return x = x * f;
+    }
+
+    // template<typename... T> void reads_impl(T&... x) { (rd(x),...); }
+
+    #define read(x) io::rd(x)
+    // #define reads(...) io::reads_impl(__VA_ARGS__)
 }
 
 void solve() {
-    cin>>n>>m;
-    for(int i=1;i<=n;i++) cin>>v[i]>>w[i];
-    for(int i=1;i<=n;i++)
-        for(int j=1;j<=m;j++) {
-            auto &cur=dp[i][j];
-            cur.ch[0][0]=cur.ch[1][0]=j;
-            if(j-v[i]>=0) cur.ch[0][1]=cur.ch[1][1]=j-v[i];
-            else cur.ch[0][1]=cur.ch[1][1]=-1;
-        }
-    
-    //起点可达
-    pre[0][0]=1;
-    for(int i=1;i<=n;i++)
-        for(int j=1;j<=m;j++)
-            for(int k=0;k<2;k++) {
-                int s=dp[i][j].ch[0][k];
-                if(s!=-1&&pre[i-1][s]) pre[i][j]=1;
-            }
-    //终点可达
-    suf[n][m]=1;
-    for(int i=n;i>=1;i--)
-        for(int j=m;j>=1;j--) 
-            if(suf[i][j])
-                for(int k=0;k<2;k++) {
-                    int s=dp[i][j].ch[0][k];
-                    if(s!=-1) suf[i-1][s]=1;
-                }
-    //能从起点走到终点
-    for(int i=1;i<=n;i++)
-        for(int j=1;j<=m;j++)
-            for(int k=0;k<2;k++) {
-                int s=dp[i][j].ch[0][k];
-                if(s!=-1&&(!pre[i-1][s]||!suf[i-1][s]))
-                    dp[i][j].ch[0][s]=dp[i][j].ch[1][s]=-1;
-            }
-
-    int ans=0;
-    dp[0][0].val[0]=1;
-    for(int bit=H;bit>=0;bit--) {
-        cal(bit);
-        if(dp[n][m].val[1]) { //可以置1
-            ans+=1<<bit;
-            bfs(bit);
-        }
-    }
-    cout<<ans;
+    int n=read(n),m=read(m);
+    for(int i=1;i<=n;i++) read(v[i]),read(w[i]);
+    for(int i=0;i<N;i++) dp[0][i].reset();
+    dp[0][0][0]=1;
+    for(int i=1,t=i&1;i<=n;i++,t=i&1)
+        for(int j=0;j<N;j++)
+            dp[t][j]=dp[!t][j^w[i]]<<v[i]|dp[!t][j];
+    int ans=-1;
+    for(int i=1;i<N;i++) if(dp[n&1][i][m]) ans=max(ans,i);
+    printf("%d\n",ans);
 }
 
 int main() {
-    ios::sync_with_stdio(0);
-    cin.tie(nullptr);
-    int t;
-    cin>>t;
+    int t=read(t);
     while(t--) solve();
     return 0;
 }
