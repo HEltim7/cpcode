@@ -1,4 +1,5 @@
-// #pragma GCC optimize("Ofast")
+#pragma GCC optimize("Ofast")
+#include <cstdio>
 #include <vector>
 #include <iostream>
 #include <algorithm>
@@ -8,9 +9,11 @@
 using namespace std;
 
 using LL=long long;
-const int N=2e5,M=N;
-int h[N],w[N],e[M],ne[M],idx;
-int id[N],nw[N],cnt;
+using PII=pair<int,int>;
+using VII=vector<PII>;
+const int N=2e5+10,M=N;
+int h[N],e[M],ne[M],idx;
+int id[N],cnt;
 int dep[N],sz[N],top[N],p[N],hch[N];
 
 // #define ONLINE_JUDGE
@@ -116,29 +119,14 @@ namespace io {
     } static exit;
 }
 
-
-struct Node{
-    int l,r;
-    int sum;
-} tr[N*4];
-
 void add(int a,int b){
     e[idx]=b,ne[idx]=h[a],h[a]=idx++;
-}
-
-void modify(int x,int l,int r,int v){
-    
-}
-
-int query(int x,int l,int r){
-    
 }
 
 void dfs1(int x,int fa,int d){
     dep[x]=d,p[x]=fa,sz[x]=1;
     for(int i=h[x];~i;i=ne[i]){
         int j=e[i];
-        if(j==fa) continue;
         dfs1(j,x,d+1);
         sz[x]+=sz[j];
         if(sz[hch[x]]<sz[j]) hch[x]=j;
@@ -146,7 +134,8 @@ void dfs1(int x,int fa,int d){
 }
 
 void dfs2(int x,int t){
-    id[x]=++cnt,nw[cnt]=w[x],top[x]=t;
+    assert(t>0);
+    id[x]=++cnt,top[x]=t;
     if(!hch[x]) return;
     dfs2(hch[x],t);
     for(int i=h[x];~i;i=ne[i]){
@@ -156,47 +145,78 @@ void dfs2(int x,int t){
     }
 }
 
-void modify_path(int x,int y,int k){
+void get_path(VII &res,int x,int y){
     while(top[x]!=top[y]){
+        assert(top[x]>0&&top[y]>0);
+        assert(x!=-1);
         if(dep[top[x]]<dep[top[y]]) swap(x,y);
-        modify(1,id[top[x]],id[x],k);
+        res.emplace_back(id[top[x]],id[x]);
         x=p[top[x]];
     }
     if(dep[x]<dep[y]) swap(x,y);
-    modify(1,id[y],id[x],k);
+    res.emplace_back(id[y],id[x]);
 }
 
-int query_path(int x,int y){
-    int res=0;
-    while(top[x]!=top[y]){
-        if(dep[top[x]]<dep[top[y]]) swap(x,y);
-        res+=query(1,id[top[x]],id[x]);
-        x=p[top[x]];
+void get_tree(VII &res,int x){
+    res.emplace_back(id[x],id[x]+sz[x]-1);
+}
+
+void merge(VII &seg) {
+    sort(seg.begin(),seg.end());
+    VII res(1,seg.front());
+    for(int i=1;i<seg.size();i++) {
+        int x=seg[i].first,y=seg[i].second;
+        if(x>res.back().second) res.push_back(seg[i]);
+        else res.back().second=max(res.back().second,y);
     }
-    if(dep[x]<dep[y]) swap(x,y);
-    res+=query(1,id[y],id[x]);
+    seg=res;
+}
+
+VII inter(VII &a,VII &b) {
+    VII res;
+    int l=0,r=0,idx=-1;
+    while(l<a.size()&&r<b.size()) {
+        auto pre=a[l],suf=b[r];
+        if(pre.first>suf.first) swap(pre,suf);
+        if(pre.second<suf.first) ;
+        else if(pre.second<=suf.second) 
+            res.emplace_back(suf.first,pre.second);
+        else res.emplace_back(suf.first,suf.second);
+        idx=min(pre.second,suf.second);
+        if(a[l].second<=idx) l++;
+        if(b[r].second<=idx) r++;
+    }
     return res;
-}
-
-void modify_tree(int x,int k){
-    modify(1,id[x],id[x]+sz[x]-1,k);
-}
-
-int query_tree(int x){
-    return query(1,id[x],id[x]+sz[x]-1);
 }
 
 void solve() {
     int n=read(n),q=read(q);
     memset(h, -1, sizeof(int)*(n+1));
-    idx=0;
+    memset(hch, 0, sizeof(int)*(n+1));
+    idx=cnt=0;
     for(int i=1;i<n;i++) {
         int r=read(r);
         add(r,i+1);
     }
+    dfs1(1,-1,1);
+    dfs2(1,1);
+    for(int i=1;i<=n;i++) assert(top[i]>0);
     while(q--) {
-        int A=read(A),B=read(B),C=read(C),in;
-        for(int i=1;i<=A;i++) {}
+        VII seg[3],res;
+        int in;
+        int sz[]={read(in),read(in),read(in)};
+        for(int i=0;i<3;i++) {
+            for(int j=0;j<sz[i];j++) {
+                if(i<2) get_path(seg[i], 1, read(in));
+                else get_tree(seg[i], read(in));
+            }
+            merge(seg[i]);
+        }
+        res=inter(seg[0], seg[1]);
+        res=inter(res, seg[2]);
+        int ans=0;
+        for(int i=0;i<res.size();i++) ans+=res[i].second-res[i].first+1;
+        write(ans),write('\n');
     }
 }
 

@@ -3,13 +3,17 @@
 #include <vector>
 #include <iostream>
 #include <algorithm>
-#include <cassert>
+#include <bitset>
 using namespace std;
 
 #define endl '\n'
 using LL=long long;
 const int N=2e5+10;
 int arr[N];
+
+struct Query {
+    int op,a,b;
+} query[N];
 
 namespace io {
     const int MAXBUF = 1e6;
@@ -31,54 +35,36 @@ namespace io {
         return x = x * f;
     }
 
-    // template<typename... T> void reads_impl(T&... x) { (rd(x),...); }
+    template<typename T> void reads_impl(T& x) { rd(x); }
+    template<typename T,typename... U> 
+    void reads_impl(T& x,U&... y) { rd(x),reads_impl(y...); }
 
     #define read(x) io::rd(x)
-    // #define reads(...) io::reads_impl(__VA_ARGS__)
+    #define reads(...) io::reads_impl(__VA_ARGS__)
 }
-
-template<typename T> 
-struct Fenwick {
-    std::vector<T> tr;
-    int sz=0;
-
-    int lowbit(int x) { return x&(-x); }
-
-    void update(T &aim,T &val) {
-        aim+=val;
-    }
-
-    void add(int pos,T val) {
-        while(pos<=sz) update(tr[pos],val),pos+=lowbit(pos);
-    }
-
-    T query(int pos) {
-        T res=0;
-        while(pos) update(res,tr[pos]),pos-=lowbit(pos);
-        return res;
-    }
-
-    Fenwick(int n) { tr.resize(sz=n+1); }
-};
 
 void solve() {
     int n=read(n),q=read(q);
-    Fenwick<int> fen(n+10);
-    for(int i=1;i<=n;i++) read(arr[i]);
-    int ans=0;
-    for(int i=1;i<=q;i++) {
-        int op=read(op);
-        if(op==1) {
-            int l=read(l),r=read(r);
-            fen.add(r+1, r-l+1);
-        }
-        else {
-            int pos=read(pos);
-            pos-=fen.query(pos);
-            assert(pos>=0);
-            ans^=arr[pos];
-        }
+    for(int i=0;i<n;i++) read(arr[i]);
+    for(int i=0;i<q;i++) {
+        read(query[i].op);
+        if(query[i].op==1) reads(query[i].a,query[i].b);
+        else read(query[i].a);
+        query[i].a--,query[i].b--;
     }
+    bitset<N> st;
+    for(int i=q-1;i>=0;i--) {
+        if(query[i].op==1) {
+            int pos=query[i].b;
+            int len=query[i].b-query[i].a+1;
+            auto suf=st&~bitset<N>()>>(N-pos-1);
+            auto pre=st&~bitset<N>()<<(pos+1);
+            st=suf^pre>>len;
+        }
+        else st.flip(query[i].a);
+    }
+    int ans=0;
+    for(int i=0;i<n;i++) if(st[i]) ans^=arr[i];
     printf("%d\n",ans);
 }
 

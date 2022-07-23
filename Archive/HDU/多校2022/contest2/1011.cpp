@@ -1,3 +1,4 @@
+#pragma GCC optimize("Ofast")
 #include <vector>
 #include <iostream>
 #include <algorithm>
@@ -6,20 +7,15 @@ using namespace std;
 
 using LL=long long;
 const int N=2e5+10;
-int arr[N],ans[N],len;
+const LL INF=0x3f3f3f3f3f3f3f3f;
+LL arr[N];
 
-
-int get(int x) {
-    return x/len;
-}
-
-struct Query {
-    int l,r,id;
-    bool operator < (const Query &x) const {
-        if(get(l)==get(x.l)) return r<x.r;
-        return get(l)<get(x.l);
-    }
-} q[N];
+// #define ONLINE_JUDGE
+#ifndef ONLINE_JUDGE
+#include<heltim7/debug>
+#else
+#define debug(...)
+#endif
 
 namespace io {
     const int MAXBUF = 1e6, MAXLEN = 1e6;
@@ -117,27 +113,62 @@ namespace io {
     } static exit;
 }
 
-void add(int x) {
-    
-}
+struct Segment {
+    struct Node {
+        int l,r;
+        LL v[10];
+    };
+    vector<Node> tr;
 
-void del(int x) {
+    void update(Node &p,Node l,Node r) {
+        p.v[1]=max(l.v[1],r.v[1]);
+        p.v[2]=max(l.v[2],r.v[2]);
+        p.v[3]=max({l.v[3],r.v[3],l.v[1]+r.v[2]});
+        p.v[4]=max({l.v[4],r.v[4],l.v[1]+r.v[8],l.v[3]+r.v[1],l.v[1]+r.v[3],l.v[6]+r.v[2]});
+        p.v[5]=max({l.v[5],r.v[5],l.v[1]+r.v[7],l.v[3]+r.v[2],l.v[2]+r.v[3],l.v[8]+r.v[2]});
+        p.v[6]=max({l.v[6],r.v[6],l.v[1]+r.v[1]});
+        p.v[7]=max({l.v[7],r.v[7],l.v[2]+r.v[2]});
+        p.v[8]=max({l.v[8],r.v[8],l.v[2]+r.v[1]});
+        p.v[9]=max({l.v[9],r.v[9],l.v[1]+r.v[5],l.v[3]+r.v[3],l.v[4]+r.v[2],l.v[6]+r.v[7]});
+    }
 
-}
+    void pushup(int u) { update(tr[u],tr[u<<1],tr[u<<1|1]); }
+
+    Node query(int u,int l,int r) {
+        if(tr[u].l>=l&&tr[u].r<=r) return tr[u];
+        int mid=tr[u].l+tr[u].r>>1;
+        Node res;
+        if(mid>=l&&mid<r) update(res,query(u<<1,l,r),query(u<<1|1,l,r));
+        else if(mid>=l) res=query(u<<1,l,r);
+        else res=query(u<<1|1, l, r);
+        return res;
+    }
+
+    void build(int u,int l,int r) {
+        tr[u]={l,r};
+        if(l==r) {
+            tr[u].v[1]=arr[l],tr[u].v[2]=-arr[r];
+            for(int i=3;i<=9;i++) tr[u].v[i]=-INF;
+        }
+        else {
+            int mid=l+r>>1;
+            build(u<<1,l,mid);
+            build(u<<1|1,mid+1,r);
+            pushup(u);
+        }
+    }
+
+    Segment(int sz) { tr.resize(sz*4+10); }
+} segtr(N);
 
 void solve() {
     int n=read(n),m=read(m);
-    len=sqrt(n)+1;
-    for(int i=1;i<=n;i++) read(arr[i]);
-    for(int i=1;i<=m;i++) {
-        read(q[i].l),read(q[i].r);
-        q[i].id=i;
+    for(int i=1;i<=n;i++) read(arr[i]),arr[i]*=arr[i];
+    segtr.build(1, 1, n);
+    while(m--) {
+        int l=read(l),r=read(r);
+        write(segtr.query(1, l, r).v[9]),write('\n');
     }
-    sort(q+1,q+1+m);
-    for(int i=1;i<=m;i++) {
-        
-    }
-    for(int i=1;i<=m;i++) write(ans[i]),write('\n');
 }
 
 int main() {
