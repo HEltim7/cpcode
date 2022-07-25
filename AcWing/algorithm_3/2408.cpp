@@ -2,15 +2,14 @@
 #include <vector>
 #include <iostream>
 #include <algorithm>
-#include <cstring>
+#include <queue>
 using namespace std;
 
 #define endl '\n'
 using LL=long long;
-const int N=2e6+10;
-int cnt[N];
-LL ans;
-int h[N],e[N],ne[N],idx;
+const int N=2e5+10;
+int ind[N];
+LL res[N];
 
 struct SAM {
     const static int A=26;
@@ -31,7 +30,6 @@ struct SAM {
         int c=x-B;
         int p=last;
         int cur=last=new_node();
-        cnt[cur]++;
         am[cur].len=am[p].len+1;
         while(p!=-1) {
             if(!am[p].next[c]) am[p].next[c]=cur;
@@ -52,29 +50,43 @@ struct SAM {
         }
     }
 
+    LL count() {
+        for(int i=0;i<am.size();i++) 
+            for(int j=0;j<A;j++) 
+                if(am[i].next[j]) 
+                    ind[am[i].next[j]]++;
+        LL ans=-1;
+        res[0]=1;
+        queue<int> q;
+        q.push(0);
+        while(q.size()) {
+            int u=q.front();
+            q.pop();
+            ans+=res[u];
+            for(int i=0;i<A;i++) {
+                int v=am[u].next[i];
+                if(v) {
+                    if(--ind[v]==0) q.push(v);
+                    res[v]+=res[u];
+                }
+            }
+        }
+        return ans;
+    }
+
     void build(string &s) { for(auto x:s) extend(x); }
     void clear() { am.clear(),am.push_back({-1}),last=0; }
     int size() { return am.size(); }
-    SAM() { am.reserve(N),am.push_back({-1}); }
+    
+    SAM() { am.push_back({-1}); }
+    SAM(int sz) { am.reserve(sz),am.push_back({-1}); }
 } sam;
 
-void dfs(int u) {
-    for(int i=h[u];~i;i=ne[i])
-        dfs(e[i]),cnt[u]+=cnt[e[i]];
-    if(cnt[u]>1) ans=max(ans,sam.am[u].len*1LL*cnt[u]);
-}
-
 void solve() {
-    memset(h, -1, sizeof h);
     string in;
-    cin>>in;
+    cin>>in>>in;
     sam.build(in);
-    auto add=[](int a,int b){
-        e[idx]=b,ne[idx]=h[a],h[a]=idx++;
-    };
-    for(int i=1;i<sam.am.size();i++) add(sam.am[i].link,i);
-    dfs(0);
-    cout<<ans;
+    cout<<sam.count();
 }
 
 int main() {

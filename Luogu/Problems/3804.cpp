@@ -8,9 +8,9 @@ using namespace std;
 #define endl '\n'
 using LL=long long;
 const int N=2e6+10;
+vector<int> adj[N];
 int cnt[N];
 LL ans;
-int h[N],e[N],ne[N],idx;
 
 struct SAM {
     const static int A=26;
@@ -52,28 +52,28 @@ struct SAM {
         }
     }
 
+    void get_cnt(int u) {
+        for(int v:adj[u])
+            get_cnt(v),cnt[u]+=cnt[v];
+        if(cnt[u]>1) ans=max(ans,1LL*cnt[u]*am[u].len);
+    }
+
+    void build_edge() {
+        for(int i=1;i<am.size();i++) adj[am[i].link].push_back(i);
+    }
+
     void build(string &s) { for(auto x:s) extend(x); }
     void clear() { am.clear(),am.push_back({-1}),last=0; }
     int size() { return am.size(); }
     SAM() { am.reserve(N),am.push_back({-1}); }
 } sam;
 
-void dfs(int u) {
-    for(int i=h[u];~i;i=ne[i])
-        dfs(e[i]),cnt[u]+=cnt[e[i]];
-    if(cnt[u]>1) ans=max(ans,sam.am[u].len*1LL*cnt[u]);
-}
-
 void solve() {
-    memset(h, -1, sizeof h);
     string in;
     cin>>in;
     sam.build(in);
-    auto add=[](int a,int b){
-        e[idx]=b,ne[idx]=h[a],h[a]=idx++;
-    };
-    for(int i=1;i<sam.am.size();i++) add(sam.am[i].link,i);
-    dfs(0);
+    sam.build_edge();
+    sam.get_cnt(0);
     cout<<ans;
 }
 
