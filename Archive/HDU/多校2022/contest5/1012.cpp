@@ -2,6 +2,9 @@
 #include <vector>
 #include <iostream>
 #include <algorithm>
+#include <map>
+#include <set>
+#include <queue>
 using namespace std;
 
 namespace io {
@@ -110,9 +113,81 @@ namespace io {
 #endif
 
 using LL=long long;
+const int N=2e5+10;
+int n,m;
+
+multimap<LL, int> timp; //最近更新时间为x的队列集合
+set<int> num; //队列人数集合
+set<int> ids[N]; //人数为x的队列集合
+LL ans;
+pair<LL,LL> customer[N];
+
+struct Que {
+    queue<LL> q;
+    LL end=0;
+    int id;
+
+    void pop() {
+        int st=size();
+        ids[st].erase(id);
+        if(ids[st].size()==0) num.erase(st);
+        st--;
+        ids[st].insert(id);
+        if(ids[st].size()==1) num.insert(st);
+
+        q.pop();
+        timp.erase(timp.begin());
+        if(q.size()) timp.emplace(q.front(),id);
+    }
+
+    void push(int pid) {
+        int st=size();
+        ids[st].erase(id);
+        if(ids[st].size()==0) num.erase(st);
+        end=max(end,customer[pid].first)+customer[pid].second;
+        ans=max(ans,end);
+        q.push(end);
+
+        st++;
+        ids[st].insert(id);
+        if(ids[st].size()==1) num.insert(st);
+
+        if(size()==1) { timp.emplace(q.front(),id); }
+    }
+
+    void clear() {
+        while(q.size()) q.pop();
+        end=0;
+    }
+    
+    int size() { return q.size(); }
+
+} que[N];
+
+void init() {
+    ans=0;
+    timp.clear();
+    num.clear();
+    num.insert(0);
+    for(int i=0;i<=n;i++) ids[i].clear();
+    for(int i=1;i<=m;i++) ids[0].insert(i);
+    for(int i=1;i<=m;i++) que[i].clear();
+    for(int i=1;i<=m;i++) que[i].id=i;
+}
 
 void solve() {
-    
+    reads(n,m);
+    init();
+    for(int i=1;i<=n;i++) reads(customer[i].first,customer[i].second);
+    sort(customer+1,customer+1+n);
+    for(int i=1;i<=n;i++) {
+        while(timp.size()&&timp.begin()->first<=customer[i].first) 
+            que[timp.begin()->second].pop();
+        int st=*num.begin();
+        int qid=*ids[st].begin();
+        que[qid].push(i);
+    }
+    writes(ans,'\n');
 }
 
 int main() {

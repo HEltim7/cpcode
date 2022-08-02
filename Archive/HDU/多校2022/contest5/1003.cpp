@@ -2,6 +2,8 @@
 #include <vector>
 #include <iostream>
 #include <algorithm>
+#include <queue>
+#include <cstring>
 using namespace std;
 
 namespace io {
@@ -110,9 +112,75 @@ namespace io {
 #endif
 
 using LL=long long;
+using PII=pair<int,int>;
+using PLI=pair<LL,int>;
+const int N=1e6+10,M=N*3;
+vector<PII> adj[M];
+int n,k,p,s,t;
+int dep[N];
+int upper[N],lower[N],idx,maxdep;
+LL dist[M];
+bool vis[M];
+
+void dfs(int u,int d,int fa) {
+    dep[u]=d;
+    maxdep=max(maxdep,d);
+    for(auto x:adj[u]) {
+        int v=x.first;
+        if(v!=fa) dfs(v,d+1,u);
+    }
+}
+
+void build() {
+    for(int i=1;i<=maxdep;i++) upper[i]=++idx;
+    for(int i=1;i<=maxdep;i++) lower[i]=++idx;
+    for(int i=1;i<=n;i++) {
+        if(dep[i]!=1) adj[i].emplace_back(upper[dep[i]],p);
+        if(dep[i]!=maxdep) adj[i].emplace_back(lower[dep[i]],p);
+        if(dep[i]-k>=1) adj[lower[dep[i]-k]].emplace_back(i,0);
+        if(dep[i]+k<=maxdep) adj[upper[dep[i]+k]].emplace_back(i,0);
+    }
+}
+
+LL dijkstra() {
+    priority_queue<PLI,vector<PLI>,greater<PLI>> heap;
+    memset(dist, 0x3f, sizeof (LL)*(n*3+5));
+    memset(vis, 0, sizeof (bool)*(n*3+5));
+    heap.emplace(0,s);
+    dist[s]=0;
+    while(heap.size()) {
+        LL d=heap.top().first;
+        int u=heap.top().second;
+        heap.pop();
+        if(vis[u]) continue;
+        vis[u]=1;
+        if(u==t) return d;
+        for(auto x:adj[u]) {
+            int v=x.first;
+            int dis=x.second;
+            if(d+dis<dist[v]) {
+                dist[v]=d+dis;
+                heap.emplace(dist[v],v);
+            }
+        }
+    }
+    return -1;
+}
 
 void solve() {
-    
+    int u,v,d;
+    idx=read(n);
+    maxdep=0;
+    for(int i=1;i<n;i++) {
+        reads(u,v,d);
+        adj[u].emplace_back(v,d);
+        adj[v].emplace_back(u,d);
+    }
+    reads(k,p,s,t);
+    dfs(1,1,-1);
+    build();
+    writes(dijkstra(),'\n');
+    for(int i=1;i<=idx;i++) adj[i].clear();
 }
 
 int main() {
