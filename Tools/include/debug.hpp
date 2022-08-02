@@ -312,4 +312,5 @@ namespace debug {
     
 } // namespace debug
 
-#define debug(...) debug::unpacker.unpack("[debug] "#__VA_ARGS__, 0 __VA_OPT__(,) __VA_ARGS__)
+// #define debug(...) debug::unpacker.unpack("[debug] "#__VA_ARGS__, 0 __VA_OPT__(,) __VA_ARGS__)
+#define debug(...) debug::unpacker.unpack("["+string(__func__)+" "+to_string(__LINE__)+"] " #__VA_ARGS__, 0 __VA_OPT__(,) __VA_ARGS__)
