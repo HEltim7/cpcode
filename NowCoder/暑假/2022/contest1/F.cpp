@@ -14,17 +14,6 @@ const int N=1e5+10,M=N*70;
 int arr[N];
 map<int,pair<int,bool>> mp;
 
-// #define ONLINE_JUDGE
-#ifndef ONLINE_JUDGE
-#include <heltim7/debug>
-#else
-#define debug(...)
-#endif
-
-void cat(ARR &x) {
-    cerr<<x[0]<<' '<<x[1]<<' '<<x[2]<<' '<<x[3]<<endl;
-}
-
 ARR unify(ARR l,ARR r) {
     ARR res;
     auto get=[](int x,int y) {
@@ -133,8 +122,12 @@ struct MergeSplitSegmentTree {
         mp.erase(it);
         mp.insert({l,{u,type}});
         mp.insert({p,{v,type}});
-        segtr.modify(1, l, tr[u].f);
-        segtr.modify(1, p, tr[v].f);
+        ARR tmp=tr[u].f;
+        if(type) reverse(tmp);
+        segtr.modify(1, l, tmp);
+        tmp=tr[v].f;
+        if(type) reverse(tmp);
+        segtr.modify(1, p, tmp);
     }
 
     void modify(int &u,int l,int r,int p) {
@@ -160,20 +153,13 @@ struct MergeSplitSegmentTree {
     ARR query(int u,int l,int r,int L,int R) {
         if(l>=L&&r<=R) return tr[u].f;
         int mid=l+r>>1;
-        if(mid>=L&&mid<R) return unify(query(tr[u].l,l,mid,L,R),query(tr[u].r,mid+1,r,L,R));
+        if(mid>=L&&mid<R) 
+            return unify(query(tr[u].l,l,mid,L,R),query(tr[u].r,mid+1,r,L,R));
         else if(mid>=L) return query(tr[u].l,l,mid,L,R);
         return query(tr[u].r,mid+1,r,L,R);
     }
 
 } tr;
-
-void bfcat() {
-    for(auto [x,y]:mp) {
-        auto [u,type]=y;
-        debug(u,tr.tr[u].cnt);
-        cat(tr.tr[u].f);
-    }
-}
 
 void solve() {
     int n,m;
@@ -194,9 +180,6 @@ void solve() {
         if(op==0||op==1) {
             tr.try_split(l);
             tr.try_split(r+1);
-            debug("split");
-            debug(mp);
-            bfcat();
             auto L=mp.lower_bound(l);
             auto R=next(L);
             int u=L->second.first;
@@ -206,11 +189,9 @@ void solve() {
             }
             mp.erase(L,R);
             mp.insert({l,{u,op}});
-            segtr.modify(1, l, tr.tr[u].f);
-            debug("merge");
-            debug(mp);
-            bfcat();
-            debug();
+            ARR tmp=tr.tr[u].f;
+            if(op) reverse(tmp);
+            segtr.modify(1, l, tmp);
         }
         else {
             auto get=[&](int l,int r) {
@@ -245,27 +226,8 @@ void solve() {
 }
 
 int main() {
-    // freopen64("F.in","r",stdin);
-    // freopen64("out.txt","w",stderr);
     ios::sync_with_stdio(0);
     cin.tie(nullptr);
     solve();
     return 0;
 }
-
-/*
-
-[solve 28] arr[1->20] = [13,7,10,1,9,15,20,19,18,17,16,14,12,11,8,6,5,4,3,2]
-[solve 27] arr[1->20] = [13,7,10,1,9,15,20,19,18,17,16,14,12,11,8,6,5,4,3,2]
-[solve 28] arr[1->20] = [13,7,10,1,9,15,20,19,18,17,16,14,12,11,8,6,5,4,3,2]
-[solve 28] arr[1->20] = [13,7,10,1,9,15,20,19,18,17,16,14,12,11,8,6,5,4,3,2]
-[solve 27] arr[1->20] = [13,7,10,1,9,15,20,19,18,17,16,14,12,11,8,6,5,4,3,2]
-[solve 28] arr[1->20] = [13,20,19,18,17,16,15,14,10,9,7,1,12,11,8,6,5,4,3,2]
-[solve 28] arr[1->20] = [13,20,19,18,17,16,15,14,10,9,7,1,12,11,8,6,5,4,3,2]
-[solve 27] arr[1->20] = [13,20,19,18,17,16,15,14,10,9,7,1,12,11,8,6,3,4,5,2]
-[solve 27] arr[1->20] = [13,14,15,16,17,18,19,20,10,9,7,1,12,11,8,6,3,4,5,2]
-[solve 28] arr[1->20] = [13,14,15,16,17,18,19,20,10,9,7,1,12,11,8,6,5,4,3,2]
-[solve 27] arr[1->20] = [13,14,15,16,17,18,19,20,10,9,7,1,12,11,8,6,5,4,3,2]
-[solve 27] arr[1->20] = [13,14,15,16,17,18,19,1,4,5,6,7,8,9,10,11,12,20,3,2]
-
-*/
