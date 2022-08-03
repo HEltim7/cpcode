@@ -34,20 +34,20 @@ struct Fenwick {
     Fenwick(int n) { tr.resize(sz=n+1); }
 };
 
-struct ACAM {
+struct AhoCorasickAutomaton {
     const static int A=26,M=22;
     const static char start='a';
     struct Node {
-        int next;
+        int link;
         int ch[A];
         vector<int> adj;
     };
 
     vector<Node> tr;
-    vector<int> label,label_end;
+    vector<int> id,ed;
     Fenwick<int> fen=Fenwick<int>(N);
     int fa[N][M+1],dep[N];
-    int idx=0,label_idx=0;
+    int sz=0,idx=0;
 
     int insert(string &s) {
         int root=0;
@@ -72,28 +72,26 @@ struct ACAM {
             q.pop();
             for(int i=0;i<A;i++) {
                 int &cur=tr[root].ch[i];
-                int pre=tr[tr[root].next].ch[i];
+                int pre=tr[tr[root].link].ch[i];
                 if(!cur) cur=pre;
                 else {
-                    tr[cur].next=pre;
+                    tr[cur].link=pre;
                     tr[pre].adj.push_back(cur);
                     q.push(cur);
                 }
             }
         }
 
-        label.resize(size());
-        label_end.resize(size());
+        id.resize(size());
+        ed.resize(size());
         relabel(0);
         getlca(0, -1);
     }
 
     void relabel(int u) {
-        label[u]=label_end[u]=++label_idx;
-        for(int v:tr[u].adj) {
-            relabel(v);
-            label_end[u]=max(label_end[u],label_end[v]);
-        }
+        id[u]=++idx;
+        for(int v:tr[u].adj) relabel(v);
+        ed[u]=idx;
     }
 
     void getlca(int u,int p){
@@ -125,28 +123,28 @@ struct ACAM {
         for(char c:s) {
             int v=c-start;
             u=tr[u].ch[v];
-            fen.add(label[u], 1);
-            pos.emplace_back(label[u],u);
+            fen.add(id[u], 1);
+            pos.emplace_back(id[u],u);
         }
         sort(pos.begin(),pos.end());
         for(int i=1;i<pos.size();i++) {
             u=lca(pos[i].second,pos[i-1].second);
-            fen.add(label[u], -1);
+            fen.add(id[u], -1);
         }
     }
     
     int match(int u) {
-        int tot=fen.query(label_end[u]);
-        int pre=fen.query(label[u]-1);
+        int tot=fen.query(ed[u]);
+        int pre=fen.query(id[u]-1);
         return tot-pre;
     }
 
     int size() { return tr.size(); }
-    int new_node() { tr.push_back({});return ++idx; }
-    void clear() { tr.clear();tr.resize(1);idx=label_idx=0; }
+    int new_node() { tr.push_back({});return ++sz; }
+    void clear() { tr.clear();tr.resize(1);sz=idx=0; }
 
-    ACAM() { tr.resize(1); }
-    ACAM(int sz) { tr.reserve(sz+1);tr.push_back({}); }
+    AhoCorasickAutomaton() { tr.resize(1); }
+    AhoCorasickAutomaton(int sz) { tr.reserve(sz+1);tr.push_back({}); }
 } acam;
 
 void solve() {
