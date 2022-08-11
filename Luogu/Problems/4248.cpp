@@ -2,38 +2,21 @@
 #include <vector>
 #include <iostream>
 #include <algorithm>
+#include <functional>
 using namespace std;
 
 #define endl '\n'
 using LL=long long;
-constexpr int N=2e5+10;
-int len[N];
-
-template<typename T=int> struct SparseTable {
-    constexpr static int M=20;
-    T st[M][N];
-
-    void build(int n) {
-        for(int i=1;i<=n;i++) st[0][i]=len[i];
-        for(int k=1,t=1<<k;k<M;k++,t<<=1)
-            for(int i=1,j=i+t-1,mid=i+t/2;j<=n;i++,j++,mid++)
-                st[k][i]=max(st[k-1][i],st[k-1][mid]);
-    }
-
-    T query(int l,int r) {
-        if(r<l) return 0;
-        int k=__lg(r-l+1);
-        return max(st[k][l],st[k][r-(1<<k)+1]);
-    }
-};
-SparseTable<> st;
+constexpr int N=5e5+10;
 
 struct SuffixAutomaton {
-    const static int A=26;
-    const static char B='a';
+    constexpr static int A=26;
+    constexpr static char B='a';
     struct Endpos {
         int link,len;
         int ch[A];
+        vector<int> adj;
+        bool mark;
     };
     vector<Endpos> edp;
     int last=0;
@@ -67,15 +50,25 @@ struct SuffixAutomaton {
         }
     }
 
-    void match(string &s) {
-        int idx=1,u=0;
-        for(auto x:s) {
-            int c=x-B;
-            len[idx]=len[idx-1];
-            while(u&&!edp[u].ch[c]) u=edp[u].link,len[idx]=edp[u].len;
-            if(edp[u].ch[c]) u=edp[u].ch[c],len[idx]++;
-            idx++;
-        }
+    LL solve(string &s) {
+        build(s);
+        for(int u=0;auto x:s) u=edp[u].ch[x-B],edp[u].mark=1;
+        for(int i=1;i<size();i++) edp[edp[i].link].adj.push_back(i);
+
+        LL ans=0;
+        auto dfs=[&](auto dfs,int u) -> int {
+            int cnt=0;
+            for(int v:edp[u].adj) {
+                auto t=dfs(dfs,v);
+                ans+=1LL*cnt*t*edp[u].len;
+                cnt+=t;
+            }
+            if(edp[u].mark) ans+=1LL*cnt*edp[u].len,cnt++;
+            return cnt;
+        };
+
+        dfs(dfs,0);
+        return ans;
     }
 
     void build(string &s) { for(auto x:s) extend(x); }
@@ -87,27 +80,13 @@ struct SuffixAutomaton {
 } sam(N*2);
 
 void solve() {
-    string s,t;
-    int q;
-    cin>>s>>t>>q;
-    sam.build(t);
-    sam.match(s);
-    st.build(s.size());
-
-    while(q--) {
-        int l,r;
-        cin>>l>>r;
-        int L=l-1,R=r;
-        int res=0;
-        
-        while(L<R) {
-            int mid=L+R+1>>1;
-            if(len[mid]<=mid-l+1) R=mid-1;
-            else L=mid;
-        }
-        res=max(L-l+1,st.query(L+1,r));
-        cout<<res<<endl;
-    }
+    string s;
+    cin>>s;
+    int n=s.size();
+    LL ans=1LL*n*(n-1)*(n+1)/2;
+    reverse(s.begin(), s.end());
+    ans-=2*sam.solve(s);
+    cout<<ans;
 }
 
 int main() {

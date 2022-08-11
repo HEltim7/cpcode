@@ -280,7 +280,7 @@
 		"body": [
 			"template<typename T=long long,T mod=998244353> struct Modint {",
 			"    T v;",
-			"    T inv() {",
+			"    T inv() const {",
 			"        T res=1,a=v,b=mod-2;",
 			"        while(b) { if(b&1) res=res*a%mod; b>>=1; a=a*a%mod; }",
 			"        return res;",
@@ -314,7 +314,7 @@
 			"",
 			"    Modint(T x=0): v((x%=mod)<0?x+mod:x) {}",
 			"};",
-			"using Mod=Modint<>;",
+			"using Mint=Modint<>;",
 		],
 		"description": "Modulo Automation",
 	},
@@ -413,6 +413,30 @@
 		],
 		"description": "Hash",
 	},
+
+	"Sparse Table": {
+		"prefix": "#st",
+		"body": [
+			"template<typename T=int> struct SparseTable {",
+			"    constexpr static int N=1e5+10,M=20;",
+			"    T arr[N],st[M][N];",
+			"",
+			"    void build(int n) {",
+			"        for(int i=1;i<=n;i++) st[0][i]=arr[i];",
+			"        for(int k=1,t=1<<k;k<M;k++,t<<=1)",
+			"            for(int i=1,j=i+t-1,mid=i+t/2;j<=n;i++,j++,mid++)",
+			"                st[k][i]=max(st[k-1][i],st[k-1][mid]);",
+			"    }",
+			"",
+			"    T query(int l,int r) {",
+			"        if(r<l) return 0;",
+			"        int k=__lg(r-l+1);",
+			"        return max(st[k][l],st[k][r-(1<<k)+1]);",
+			"    }",
+			"};",
+		],
+		"description": "Sparse Table",
+	},	
 	
 
 	  //==============================//
@@ -866,8 +890,8 @@
 		"prefix": "#sam",
 		"body": [
 			"struct SuffixAutomaton {",
-			"    const static int A=26;",
-			"    const static char B='a';",
+			"    constexpr static int A=26;",
+			"    constexpr static char B='a';",
 			"    struct Endpos {",
 			"        int link,len;",
 			"        int ch[A];",
