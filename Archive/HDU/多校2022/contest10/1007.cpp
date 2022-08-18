@@ -6,7 +6,7 @@ using namespace std;
 
 // #define ONLINE_JUDGE
 #ifndef ONLINE_JUDGE
-#include<heltim7/debug>
+#include <heltim7/debug>
 #else
 #define debug(...)
 #endif
@@ -109,10 +109,83 @@ namespace io {
     } static exit;
 }
 
+template<typename T=long long,T mod=998244353> struct Modint {
+    T v;
+    T inv() const {
+        T res=1,a=v,b=mod-2;
+        while(b) { if(b&1) res=res*a%mod; b>>=1; a=a*a%mod; }
+        return res;
+    }
+
+    Modint &operator+=(const Modint &x) { v+=x.v; if(v>=mod) v-=mod; return *this; }
+    Modint &operator-=(const Modint &x) { v-=x.v; if(v<0) v+=mod; return *this; }
+    Modint &operator*=(const Modint &x) { v=v*x.v%mod; return *this; }
+    Modint &operator/=(const Modint &x) { v=v*x.inv()%mod; return *this; }
+
+    friend Modint operator+(Modint l,const Modint &r) { return l+=r; }
+    friend Modint operator-(Modint l,const Modint &r) { return l-=r; }
+    friend Modint operator*(Modint l,const Modint &r) { return l*=r; }
+    friend Modint operator/(Modint l,const Modint &r) { return l/=r; }
+
+    Modint operator++(int) { auto res=*this; *this+=1; return res; }
+    Modint operator--(int) { auto res=*this; *this-=1; return res; }
+    Modint operator-  () { return *this*-1; }
+    Modint &operator++() { return *this+=1; }
+    Modint &operator--() { return *this-=1; }
+
+    bool operator< (const Modint&x) { return v< x.v; }
+    bool operator> (const Modint&x) { return v> x.v; }
+    bool operator<=(const Modint&x) { return v<=x.v; }
+    bool operator>=(const Modint&x) { return v>=x.v; }
+    bool operator==(const Modint&x) { return v==x.v; }
+    bool operator!=(const Modint&x) { return v!=x.v; }
+
+    friend istream &operator>>(istream &is,Modint &x) { return is>>x.v; }
+    friend ostream &operator<<(ostream &os,const Modint &x) { return os<<x.v; }
+
+    Modint(T x=0): v((x%=mod)<0?x+mod:x) {}
+};
+using Mint=Modint<>;
+
 using LL=long long;
+constexpr int N=1e5+10;
+vector<int> adj[N];
+
+pair<Mint,Mint> dfs(int u,int fa) {
+    pair<Mint,Mint> res={0,1};
+    for(int v:adj[u]) {
+        if(v==fa) continue;
+        auto t=dfs(v,u);
+        Mint even=t.first,odd=t.second;
+        Mint d0,d1;
+        d0=res.first*even+res.second*odd;
+        d1=res.second*even+res.first*odd;
+        if(even==0) {
+            res.first=d0;
+            res.second=d1;
+        }
+        else {
+            res.first+=d0;
+            res.second+=d1;
+        }
+        if(u==1) debug(res.first.v,res.second.v);
+    }
+    debug(u,res.first.v,res.second.v);
+    return res;
+}
 
 void solve() {
-    
+    int n=read(n);
+    for(int i=1;i<=n;i++) adj[i].clear();
+    for(int i=1;i<n;i++) {
+        int u,v;
+        reads(u,v);
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+    Mint ans=dfs(1,-1).first;
+    ans-=(n&1)==0;
+    writes(ans.v,'\n');
 }
 
 int main() {

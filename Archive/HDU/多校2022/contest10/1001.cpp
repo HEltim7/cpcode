@@ -2,6 +2,7 @@
 #include <vector>
 #include <iostream>
 #include <algorithm>
+#include <cstring>
 using namespace std;
 
 // #define ONLINE_JUDGE
@@ -110,9 +111,88 @@ namespace io {
 }
 
 using LL=long long;
+constexpr int N=1.5e3+10,M=1e4+10,INF=0x3f3f3f3f;
+int e[M],ne[M],f[M],idx;
+int h[N],q[N],arc[N],d[N];
+int n,m,S,T,cnt;
+int win[N];
+
+void add(int a,int b,int c){
+    e[idx]=b,f[idx]=c,ne[idx]=h[a],h[a]=idx++;
+    e[idx]=a,f[idx]=0,ne[idx]=h[b],h[b]=idx++;
+}
+
+int dfs(int id,int lim){
+    if(id==T) return lim;
+    int flow=0;
+    for(int i=arc[id];~i&&flow<lim;i=ne[i]){
+        int ver=e[i];
+        arc[id]=i;
+        if(f[i]&&d[ver]==d[id]+1){
+            int t=dfs(ver,min(f[i],lim-flow));
+            if(!t) d[ver]=-1;
+            f[i]-=t,f[i^1]+=t,flow+=t;
+        }
+    }
+    return flow;
+}
+
+bool bfs(){
+    memset(d,-1,sizeof (int)*(cnt));
+    q[0]=S,arc[S]=h[S],d[S]=0;
+    int hh=0,tt=1;
+    while(hh<tt){
+        int ver=q[hh++];
+        for(int i=h[ver];~i;i=ne[i]){
+            int t=e[i];
+            if(f[i]&&d[t]==-1){
+                d[t]=d[ver]+1;
+                arc[t]=h[t];
+                if(t==T) return 1;
+                q[tt++]=t;
+            }
+        }
+    }
+    return 0;
+}
+
+int dinic(){
+    int F=0,flow=0;
+    while(bfs()) while(flow=dfs(S,INF)) F+=flow;
+    return F;
+}
 
 void solve() {
-    
+    int n,m1,m2;
+    reads(n,m1,m2);
+    cnt=n+m2+5;
+    T=cnt-1;
+    memset(h, -1, sizeof(int)*(cnt));
+    memset(win, 0, sizeof(int)*(n+1));
+    idx=0;
+
+    for(int i=1;i<=m1;i++) {
+        int x,y,z;
+        reads(x,y,z);
+        if(z==1) win[x]++;
+        else win[y]++;
+    }
+
+    int maxflow=0;
+    for(int i=1;i<=m2;i++) {
+        int x,y;
+        reads(x,y);
+        if(x==1||y==1) win[1]++;
+        else add(i,x+m2,1),add(i,y+m2,1),maxflow++;
+    }
+    for(int i=2;i<=n;i++) if(win[1]<win[i]) {
+        writes("NO\n");
+        return;
+    }
+    for(int i=1;i<=m2;i++) add(S,i,1);
+    for(int i=2;i<=n;i++) add(i+m2,T,win[1]-win[i]);
+    if(dinic()==maxflow) writes("YES\n");
+    else writes("NO\n");
 }
 
 int main() {

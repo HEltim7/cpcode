@@ -109,10 +109,106 @@ namespace io {
     } static exit;
 }
 
+template<typename T=long long,T mod=998244353> struct Modint {
+    T v;
+    T inv() const {
+        T res=1,a=v,b=mod-2;
+        while(b) { if(b&1) res=res*a%mod; b>>=1; a=a*a%mod; }
+        return res;
+    }
+
+    Modint &operator+=(const Modint &x) { v+=x.v; if(v>=mod) v-=mod; return *this; }
+    Modint &operator-=(const Modint &x) { v-=x.v; if(v<0) v+=mod; return *this; }
+    Modint &operator*=(const Modint &x) { v=v*x.v%mod; return *this; }
+    Modint &operator/=(const Modint &x) { v=v*x.inv()%mod; return *this; }
+
+    friend Modint operator+(Modint l,const Modint &r) { return l+=r; }
+    friend Modint operator-(Modint l,const Modint &r) { return l-=r; }
+    friend Modint operator*(Modint l,const Modint &r) { return l*=r; }
+    friend Modint operator/(Modint l,const Modint &r) { return l/=r; }
+
+    Modint operator++(int) { auto res=*this; *this+=1; return res; }
+    Modint operator--(int) { auto res=*this; *this-=1; return res; }
+    Modint operator-  () { return *this*-1; }
+    Modint &operator++() { return *this+=1; }
+    Modint &operator--() { return *this-=1; }
+
+    bool operator< (const Modint&x) { return v< x.v; }
+    bool operator> (const Modint&x) { return v> x.v; }
+    bool operator<=(const Modint&x) { return v<=x.v; }
+    bool operator>=(const Modint&x) { return v>=x.v; }
+    bool operator==(const Modint&x) { return v==x.v; }
+    bool operator!=(const Modint&x) { return v!=x.v; }
+
+    friend istream &operator>>(istream &is,Modint &x) { return is>>x.v; }
+    friend ostream &operator<<(ostream &os,const Modint &x) { return os<<x.v; }
+
+    Modint(T x=0): v((x%=mod)<0?x+mod:x) {}
+};
+using Mint=Modint<>;
+
 using LL=long long;
+using PII=pair<int,int>;
+constexpr int N=1e5+10,mod=998244353;
+int val[N],pos[N];
+int row[N],col[N];
+Mint dp[N];
+PII tmp[N];
+
+LL qpow(LL a,LL b) {
+    LL res=1;
+    while(b) {
+        if(b&1) res=res*a%mod;
+        b>>=1;
+        a=a*a%mod;
+    }
+    return res;
+}
+
+Mint f(int x) {
+    return qpow(2,x+1)-1;
+}
+
+Mint g(int x) {
+    return qpow(2,x+2)-x-4;
+}
 
 void solve() {
-    
+    int n,m;
+    reads(n,m);
+    for(int i=1;i<=m;i++) {
+        reads(tmp[i].first,tmp[i].second);
+        if(tmp[i].first>tmp[i].second) swap(tmp[i].first,tmp[i].second);
+    }
+    sort(tmp+1,tmp+m+1);
+    for(int i=1;i<=m;i++) {
+        row[i]=tmp[i].first;
+        col[i]=tmp[i].second;
+        val[i]=col[i]-row[i];
+    }
+    vector<int> stk;
+    Mint sum;
+
+    for(int i=1;i<=m;i++) {
+        if(stk.size()&&col[i]==col[stk.back()]) continue;
+        while(stk.size()&&val[i]>=col[i]-row[stk.back()]) stk.pop_back();
+        if(stk.size()) {
+            int t=stk.back();
+            int len=col[i]-col[t]-val[i];
+            debug(i,t,len);
+            dp[i]=dp[t]*(g(len)+1);
+        }
+        else {
+            dp[i]=f(col[i]-val[i]);
+        }
+        stk.push_back(i);
+        debug(stk);
+    }
+    debug(dp[1].v);
+    Mint ans=dp[stk.back()]*f(n-col[stk.back()]);
+    for(int i=0;i<5;i++) debug(f(i));
+    for(int i=0;i<5;i++) debug(g(i));
+    cout<<ans<<endl;
 }
 
 int main() {
