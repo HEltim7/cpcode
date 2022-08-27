@@ -2,11 +2,12 @@
 #include <vector>
 #include <iostream>
 #include <algorithm>
+#include <cassert>
 using namespace std;
 
 // #define ONLINE_JUDGE
 #ifndef ONLINE_JUDGE
-#include<heltim7/debug>
+#include <heltim7/debug>
 #else
 #define debug(...)
 #endif
@@ -165,12 +166,12 @@ LL qpow(LL a,LL b) {
     return res;
 }
 
-Mint f(int x) {
-    return qpow(2,x+1)-1;
+[[maybe_unused]] Mint f(int x) {
+    return 0;
 }
 
-Mint g(int x) {
-    return qpow(2,x+2)-x-4;
+[[maybe_unused]] Mint g(int x) {
+    return 0;
 }
 
 void solve() {
@@ -180,34 +181,33 @@ void solve() {
         reads(tmp[i].first,tmp[i].second);
         if(tmp[i].first>tmp[i].second) swap(tmp[i].first,tmp[i].second);
     }
-    sort(tmp+1,tmp+m+1);
+    sort(tmp+1,tmp+m+1,[](PII &a,PII &b){
+        if (a.second==b.second) return a.first<b.first;
+        return a.second<b.second;
+    });
     for(int i=1;i<=m;i++) {
         row[i]=tmp[i].first;
         col[i]=tmp[i].second;
-        val[i]=col[i]-row[i];
+        val[i]=col[i]-row[i]+1;
     }
     vector<int> stk;
-    Mint sum;
 
     for(int i=1;i<=m;i++) {
+        debug(i);
         if(stk.size()&&col[i]==col[stk.back()]) continue;
-        while(stk.size()&&val[i]>=col[i]-row[stk.back()]) stk.pop_back();
+        while(stk.size()&&val[i]>=col[i]-row[stk.back()]+1) stk.pop_back();
         if(stk.size()) {
             int t=stk.back();
-            int len=col[i]-col[t]-val[i];
-            debug(i,t,len);
-            dp[i]=dp[t]*(g(len)+1);
+            int len=col[i]-row[t]-val[i];
+            dp[i]=dp[t]*g(len);
         }
         else {
             dp[i]=f(col[i]-val[i]);
+            debug(i,dp[i]);
         }
         stk.push_back(i);
-        debug(stk);
     }
-    debug(dp[1].v);
     Mint ans=dp[stk.back()]*f(n-col[stk.back()]);
-    for(int i=0;i<5;i++) debug(f(i));
-    for(int i=0;i<5;i++) debug(g(i));
     cout<<ans<<endl;
 }
 

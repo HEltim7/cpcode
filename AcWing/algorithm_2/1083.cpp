@@ -1,54 +1,47 @@
-#include<iostream>
-#include<vector>
+#include <vector>
+#include <iostream>
+#include <algorithm>
 using namespace std;
 
-typedef vector<int> VI;
+#define endl '\n'
+using LL=long long;
+constexpr int N=32,M=9;
+int dp[N+1][M+1];
 
-const int N=12;
-int dp[N][10];//i位，最高位为j的方案
-
-void init(){
-    for(int i=0;i<=9;i++) dp[1][i]=1;
-
-    for(int i=2;i<N;i++)
-        for(int j=0;j<=9;j++)
-            for(int k=0;k<=9;k++)
+void init() {
+    for(int i=0;i<=M;i++) dp[1][i]=1;
+    for(int i=2;i<=N;i++)
+        for(int j=0;j<=M;j++)
+            for(int k=0;k<=M;k++)
                 if(abs(j-k)>=2)
                     dp[i][j]+=dp[i-1][k];
 }
 
-int dfs(int n){
-    if(n==0) return 0;
-    VI num;
-    while(n) num.push_back(n%10),n/=10;
-
-    int res=0,last=-1;//last表示上一个数
-    for(int i=num.size()-1;i>=0;i--){//枚举每一位
-        int x=num[i];
-        //枚举每一个可能的数，且第一位不能是0
-        for(int j=i==num.size()?1:0;j<x;j++){
-            if(abs(j-last)>=2) res+=dp[i+1][j];
-        }
-
-        if(abs(x-last)>=2) last=x;
-        else break;
-        if(i==0) res++;
+int cal(int x) {
+    vector<int> num;
+    while(x) num.push_back(x%10),x/=10;
+    reverse(num.begin(),num.end());
+    int last=-1,ans=0,len=num.size();
+    for(int i=1;i<len;i++) for(int j=1;j<=M;j++) ans+=dp[i][j];
+    for(int cur:num) {
+        for(int i=last==-1?1:0;i<cur;i++) 
+            if(abs(last-i)>=2) ans+=dp[len][i];
+        if(abs(cur-last)<2) break;
+        last=cur,len--;
     }
-
-    //特判前导零的情况，防止重复计算
-    for(int i=1;i<num.size();i++)
-        for(int j=1;j<=9;j++)
-            res+=dp[i][j];
-
-    return res;
+    return ans;
 }
 
-int main(){
-    ios::sync_with_stdio(0);
-    cin.tie(0),cout.tie(0);
-    int a,b;
-    cin>>a>>b;
+void solve() {
     init();
-    cout<<dfs(b)-dfs(a-1);
+    int l,r;
+    cin>>l>>r;
+    cout<<cal(r+1)-cal(l);
+}
+
+int main() {
+    ios::sync_with_stdio(0);
+    cin.tie(nullptr);
+    solve();
     return 0;
 }

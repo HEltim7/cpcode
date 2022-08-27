@@ -1,40 +1,44 @@
-#include<iostream>
-#include<vector>
+#include <vector>
+#include <iostream>
+#include <algorithm>
 using namespace std;
 
-typedef vector<int> VI;
+#define endl '\n'
+using LL=long long;
+constexpr int N=32,M=9;
+int dp[N+1][M+1];
 
-const int N=35;
-int dp[N][N];//总共有i位且最高位为j的的方案数
-int a,b;
-
-void init(){
-    for(int i=1;i<=9;i++) dp[1][i]=1;
-    for(int i=2;i<=N-1;i++)
-        for(int j=0;j<=9;j++)
-            for(int k=j;k<=9;k++)
+void init() {
+    for(int i=0;i<=M;i++) dp[1][i]=1;
+    for(int i=2;i<=N;i++)
+        for(int j=0;j<=M;j++)
+            for(int k=j;k<=M;k++)
                 dp[i][j]+=dp[i-1][k];
 }
 
-int sol(int n){
-    if(n==0) return 0;
-    int last=0,res=0;
-    VI num;
-    while(n) num.push_back(n%10),n/=10;
-    for(int i=num.size()-1;i>=0;i--){
-        int x=num[i];
-        if(x<last) break;
-        for(int j=last;j<x;j++) res+=dp[i+1][j];
-        last=x;
-        if(i==0) res++;
+int cal(unsigned int x) {
+    vector<int> num;
+    while(x) num.push_back(x%10),x/=10;
+    reverse(num.begin(),num.end());
+    int last=1,ans=0,len=num.size();
+    for(int i=1;i<len;i++) for(int j=1;j<=M;j++) ans+=dp[i][j];
+    for(int cur:num) {
+        for(int i=last;i<cur;i++) ans+=dp[len][i];
+        if(cur<last) break;
+        last=cur,len--;
     }
-    return res;
+    return ans;
 }
 
-int main(){
-    ios::sync_with_stdio(0);
-    cin.tie(0),cout.tie(0);
+void solve() {
     init();
-    while(cin>>a>>b) cout<<sol(b)-sol(a-1)<<endl;
+    unsigned int l,r;
+    while(cin>>l>>r) cout<<cal(r+1)-cal(l)<<endl;
+}
+
+int main() {
+    ios::sync_with_stdio(0);
+    cin.tie(nullptr);
+    solve();
     return 0;
 }

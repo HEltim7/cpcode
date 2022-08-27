@@ -1,3 +1,4 @@
+#include <string>
 #include <vector>
 #include <iostream>
 #include <algorithm>
@@ -5,26 +6,50 @@ using namespace std;
 
 #define endl '\n'
 using LL=long long;
-const int N=1e5+10,M=18;
-LL val[N],pre[N],st[M][N];
+using PLL=pair<LL,LL>;
+constexpr int N=1e5+10;
+int val[N];
 
-void get_st(int n) {
-    for(int i=1;i<=n;i++) st[0][i]=pre[i];
-    for(int k=1;k<M;k++) {
-        int len=1<<k;
-        for(int i=1,mid=i+len/2,j=1+len-1;j<=n;i++,mid++,j++)
-            st[k][i]=min(st[k-1][i],st[k-1][mid]);
+struct SegmentTree {
+
+    struct Node {
+        int l,r,len,mid;
+        LL sum,rmax;
+    } tr[N*4];
+
+    void pushup(int u) {
+        tr[u].sum=tr[u<<1].sum+tr[u<<1|1].sum;
+        tr[u].rmax=max(tr[u<<1].rmax+tr[u<<1|1].sum,tr[u<<1|1].rmax);
     }
-}
 
-LL query(int l,int r) {
-    int k=__lg(r-l);
-    return min(st[k][l],st[k][r-(1<<k)+1]);
-}
+    PLL query(int u,int l,int r) {
+        if(l>r) return {};
+        if(tr[u].l>=l&&tr[u].r<=r) return {tr[u].sum,tr[u].rmax};
+        if(tr[u].mid>=l&&tr[u].mid<r) {
+            PLL res={},L=query(u<<1,l,r),R=query(u<<1|1,l,r);
+            res.first=L.first+R.first;
+            res.second=max(L.second+R.first,R.second);
+            return res;
+        }
+        if(tr[u].mid>=l) return query(u<<1,l,r);
+        return query(u<<1|1,l,r);
+    }
+
+    void build(int u,int l,int r) {
+        tr[u]={l,r,r-l+1,l+r>>1};
+        if(l==r) tr[u].sum=val[l],tr[u].rmax=max(0,val[l]);
+        else {
+            build(u<<1,l,tr[u].mid);
+            build(u<<1|1,tr[u].mid+1,r);
+            pushup(u);
+        }
+    }
+
+} sgt;
 
 struct SuffixAutomaton {
-    const static int A=26;
-    const static char B='a';
+    constexpr static int A=26;
+    constexpr static char B='a';
     struct Endpos {
         int link,len;
         int ch[A];
@@ -61,15 +86,17 @@ struct SuffixAutomaton {
         }
     }
 
-    LL match(string &s) {
-        LL ans=0;
+    LL solve(string &s) {
         int u=0,len=0,idx=1;
+        LL ans=0;
         for(auto x:s) {
             int c=x-B;
             while(u&&!edp[u].ch[c]) u=edp[u].link,len=edp[u].len;
             if(edp[u].ch[c]) u=edp[u].ch[c],len++;
-            ans=max(ans,)
+            ans=max(ans,sgt.query(1, idx-len+1, idx).second);
+            idx++;
         }
+        return ans;
     }
 
     void build(string &s) { for(auto x:s) extend(x); }
@@ -81,14 +108,15 @@ struct SuffixAutomaton {
 } sam(N*2);
 
 void solve() {
-    int n,k,m;
     string s;
-    cin>>n>>k>>m>>s;
+    int n,m,k;
+    cin>>n>>m>>k>>s;
+    for(int i=1;i<=m;i++) cin>>val[i];
     sam.build(s);
-    for(int i=1;i<=n;i++) cin>>val[i],pre[i]=val[i]+pre[i-1];
-    while(k--) {
+    sgt.build(1, 1, m);
+    for(int i=1;i<=k;i++) {
         cin>>s;
-        cout<<sam.match(s)<<endl;
+        cout<<sam.solve(s)<<endl;
     }
 }
 
