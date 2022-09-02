@@ -6,29 +6,30 @@ using namespace std;
 
 #define endl '\n'
 using LL=long long;
-constexpr int N=1e6+10;
-int root[N],n;
-vector<int> adj[N];
+constexpr int N=2e5+10;
+int root[N];
 
 struct MergeSplitSegmentTree {
 
-    #define lch tr[u].l
-    #define rch tr[u].r
+    #define lch tr[u].ch[0]
+    #define rch tr[u].ch[1]
     constexpr static int MAX_SIZE=N*40;
     
     struct Node {
-        int l,r;
+        int ch[2];
     } tr[MAX_SIZE];
     int idx;
 
     int new_node() { return ++idx; }
-
-    int merge(int x,int y) {
-        if(!x||!y) return x|y;
-        int u=new_node();
-        lch=merge(tr[x].l,tr[y].l);
-        rch=merge(tr[x].r,tr[y].r);
-        return u;
+    
+    int merge(int u,int v) {
+        if(!u||!v) return u|v;
+        else {
+            int w=new_node();
+            tr[w].ch[0]=merge(lch,tr[v].ch[0]);
+            tr[w].ch[1]=merge(rch,tr[v].ch[1]);
+            return w;
+        }
     }
 
     bool __query(int u,int l,int r,int L,int R) {
@@ -40,8 +41,8 @@ struct MergeSplitSegmentTree {
         return res;
     }
 
-    bool query(int u,int L,int R) {
-        return L<=R&&__query(u, 1, n, L, R);
+    bool query(int u,int l,int r,int L,int R) {
+        return L<=R&&__query(u, l, r, L, R);
     }
 
     void build(int &u,int l,int r,int p) {
@@ -58,13 +59,14 @@ struct MergeSplitSegmentTree {
 
 } sgt;
 
+int n;
+vector<int> adj[N];
 struct SuffixAutomaton {
     constexpr static int A=26;
     constexpr static char B='a';
     struct Endpos {
         int link,len;
         int ch[A];
-        bool mark;
     };
     vector<Endpos> edp;
     int last=0;
@@ -99,61 +101,71 @@ struct SuffixAutomaton {
     }
 
     void merge(int u) {
-        for(int v:adj[u]) 
-            merge(v),root[u]=sgt.merge(root[u], root[v]);
+        for(int v:adj[u]) merge(v),root[u]=sgt.merge(root[u], root[v]);
     }
 
-    void build_with_sgt(string &s) {
-        build(s);
-        for(int u=0,i=0;i<s.size();i++) {
-            int c=s[i]-B;
+    void build(string &s) {
+        for(char x:s) extend(x);
+        n=s.size();
+        int u=0,len=0;
+        for(char x:s) {
+            int c=x-B;
             u=edp[u].ch[c];
-            sgt.build(root[u], 1, n, i+1);
+            len++;
+            sgt.build(root[u], 1, n, len);
         }
         for(int i=1;i<size();i++) adj[edp[i].link].push_back(i);
         for(int v:adj[0]) merge(v);
     }
 
-    void build(string &s) { for(auto x:s) extend(x); }
+    string match(string &s,int L,int R) {
+        s.push_back('a'-1);
+        vector<int> stk(1);
+        string res;
+        int len,u;
+        for(len=u=0;len<s.size();len++) {
+            int c=s[len]-B;
+            bool fail=0;
+            if(s[len]=='a'-1||!edp[u].ch[c]) fail=1;
+            else fail=!sgt.query(root[edp[u].ch[c]], 1, n, L+len, R);
+            if(fail) break;
+            u=edp[u].ch[c];
+            stk.push_back(u);
+            res.push_back(s[len]);
+        }
+        
+        while(stk.size()) {
+            u=stk.back();
+            for(int c=s[len]+1-B;c<26;c++) {
+                int v=edp[u].ch[c];
+                if(v&&sgt.query(root[v], 1, n, L+len, R)) {
+                    res.push_back(c+B);
+                    return res;
+                }
+            }
+            stk.pop_back();
+            if(res.size()) res.pop_back();
+            len--;
+        }
+        return "-1";
+    }
+
     void clear() { edp.clear(),edp.push_back({-1}),last=0; }
     int size() { return edp.size(); }
     
     SuffixAutomaton() { edp.push_back({-1}); }
     SuffixAutomaton(int sz) { edp.reserve(sz),edp.push_back({-1}); }
-} sam(N),cur(N);
-
-LL count(string &str,int L,int R) {
-    cur.clear();
-    cur.build(str);
-    int u=0,v=0,len=0,tot=0;
-    LL res=0;
-    auto &s=sam.edp,&t=cur.edp;
-    for(char x:str) {
-        int c=x-SuffixAutomaton::B;
-        tot++;
-        while(u&&(!s[u].ch[c]||!sgt.query(root[s[u].ch[c]], L+len, R)))
-            if(--len==s[s[u].link].len) u=s[u].link,len=s[u].len;
-        if(s[u].ch[c]&&sgt.query(root[s[u].ch[c]], L+len, R)) 
-            u=s[u].ch[c],len++;
-
-        v=t[v].ch[c];
-        int p=v;
-        while(p&&!t[p].mark) t[p].mark=1,p=t[p].link;
-        res+=tot-max(len,t[p].len);
-    }
-    return res;
-}
+} sam(N);
 
 void solve() {
     int q;
     string s;
     cin>>s>>q;
-    n=s.size();
-    sam.build_with_sgt(s);
+    sam.build(s);
     while(q--) {
         int l,r;
-        cin>>s>>l>>r;
-        cout<<count(s,l,r)<<endl;
+        cin>>l>>r>>s;
+        cout<<sam.match(s, l, r)<<endl;
     }
 }
 
