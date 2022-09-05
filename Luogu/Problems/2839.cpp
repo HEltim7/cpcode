@@ -93,13 +93,12 @@ void solve() {
         if(i==0||num[i].first>num[i-1].first)
             val.push_back(num[i].first),arr[num[i].second]=++maxv;
         else arr[num[i].second]=maxv;
-    
+
     sgt.build(root[0], 0, n-1);
-    for(int i=0,j=0;i<=maxv;i++) {
-        while(arr[num[j].second]==i)
+    for(int i=0,j=0;i<=maxv;i++)
+        while(arr[num[j].second]==i&&j<num.size())
             sgt.modify(root[i+1], root[i], 0, n-1, num[j++].second, i);
-    }
-    
+
     int Q,last=0;
     array<int,4> q;
     cin>>Q;
@@ -121,7 +120,7 @@ void solve() {
             if(check(mid)) l=mid;
             else r=mid-1;
         }
-        cout<<val[last=l]<<endl;
+        cout<<(last=val[l])<<endl;
     }
 }
 
