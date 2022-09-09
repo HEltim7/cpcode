@@ -7,8 +7,9 @@ using namespace std;
 
 #define endl '\n'
 using LL=long long;
-constexpr int N=1e5+10,M=N*2;
-int root[N];
+constexpr int N=1e5+10;
+int root[N],id[N],w[N],nw[N];
+vector<int> adj[N];
 
 struct PersistentSegmentTree {
 
@@ -72,51 +73,48 @@ struct PersistentSegmentTree {
 
 } sgt;
 
-int h[N],w[N],e[M],ne[M],idx;
-int id[N],nw[N],cnt;
-int dep[N],sz[N],top[N],p[N],hch[N];
+namespace hpd {
+    using PII=pair<int,int>;
+    int dep[N],sz[N],top[N],p[N],hch[N],cnt;
 
-void add(int a,int b){
-    e[idx]=b,ne[idx]=h[a],h[a]=idx++;
-    e[idx]=a,ne[idx]=h[b],h[b]=idx++;
-}
-
-void dfs1(int x,int fa,int d){
-    dep[x]=d,p[x]=fa,sz[x]=1;
-    for(int i=h[x];~i;i=ne[i]){
-        int j=e[i];
-        if(j==fa) continue;
-        dfs1(j,x,d+1);
-        sz[x]+=sz[j];
-        if(sz[hch[x]]<sz[j]) hch[x]=j;
+    void dfs1(int u,int fa,int d) {
+        dep[u]=d,p[u]=fa,sz[u]=1;
+        for(int v:adj[u]) {
+            if(v==fa) continue;
+            dfs1(v,u,d+1);
+            sz[u]+=sz[v];
+            if(sz[hch[u]]<sz[v]) hch[u]=v;
+        }
     }
-}
 
-void dfs2(int x,int t){
-    id[x]=++cnt,nw[cnt]=w[x],top[x]=t;
-    if(!hch[x]) return;
-    dfs2(hch[x],t);
-    for(int i=h[x];~i;i=ne[i]){
-        int j=e[i];
-        if(j==p[x]||j==hch[x]) continue;
-        dfs2(j,j);
+    void dfs2(int u,int t) {
+        id[u]=++cnt,nw[cnt]=w[u],top[u]=t;
+        if(!hch[u]) return;
+        dfs2(hch[u],t);
+        for(int v:adj[u])
+            if(v!=p[u]&&v!=hch[u]) dfs2(v,v);
     }
-}
 
-vector<pair<int,int>> get_path(int x,int y){
-    vector<pair<int,int>> res;
-    while(top[x]!=top[y]){
-        if(dep[top[x]]<dep[top[y]]) swap(x,y);
-        res.emplace_back(id[top[x]],id[x]);
-        x=p[top[x]];
+    void init() {
+        // cnt,hch -> 0
+        dfs1(1,-1,1); dfs2(1,1);
     }
-    if(dep[x]<dep[y]) swap(x,y);
-    res.emplace_back(id[y],id[x]);
-    return res;
-}
 
-pair<int,int> get_subtree(int x){
-    return { id[x],id[x]+sz[x]-1 };
+    vector<PII> decompose(int x,int y) {
+        vector<PII> res;
+        while(top[x]!=top[y]) {
+            if(dep[top[x]]<dep[top[y]]) swap(x,y);
+            res.emplace_back(id[top[x]],id[x]);
+            x=p[top[x]];
+        }
+        if(dep[x]<dep[y]) swap(x,y);
+        res.emplace_back(id[y],id[x]);
+        return res;
+    }
+
+    PII decompose(int x) {
+        return { id[x],id[x]+sz[x]-1 };
+    }
 }
 
 void solve() {
@@ -130,14 +128,13 @@ void solve() {
         w[i]=lower_bound(num.begin(),num.end(),w[i])-num.begin()+1;
     int maxv=num.size();
 
-    memset(h, -1, sizeof(int)*(n+1));
     for(int i=2;i<=n;i++) {
         int u,v;
         cin>>u>>v;
-        add(u,v);
+        adj[u].push_back(v);
+        adj[v].push_back(u);
     }
-    dfs1(1, -1, 1);
-    dfs2(1, 1);
+    hpd::init();
     sgt.build(root[0], 1, maxv);
     for(int i=1;i<=n;i++) sgt.modify(root[i], root[i-1], 1, maxv, nw[i]);
 
@@ -145,7 +142,7 @@ void solve() {
     while(m--) {
         int u,v,k;
         cin>>u>>v>>k;
-        auto seg=get_path(u^last, v);
+        auto seg=hpd::decompose(u^last, v);
         for(auto &[x,y]:seg) x=root[x-1],y=root[y];
         last=num[sgt.kth(seg,1,maxv,k)-1];
         cout<<last<<endl;
