@@ -25,6 +25,9 @@
 !*.md
 !.gitignore
 
+# image file
+!*.png
+
 # config
 !*_snippets.json
 
