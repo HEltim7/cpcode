@@ -1,14 +1,14 @@
+#include <array>
 #include <vector>
 #include <iostream>
 #include <algorithm>
-#include <array>
 using namespace std;
 
 #define endl '\n'
 using LL=long long;
 constexpr int N=2e5+10,M=20;
 int fa[N][M+1],dep[N]={1};
-int id[N],ed[N],val[N],idx;
+int id[N],ed[N],cnt[N],idx;
 vector<int> adj[N];
 
 void get_lca(int u) {
@@ -40,7 +40,7 @@ void relable(int u) {
 }
 
 void sum(int u) {
-    for(int v:adj[u]) sum(v),val[u]+=val[v];
+    for(int v:adj[u]) sum(v),cnt[u]+=cnt[v];
 }
 
 struct GeneralSuffixAutomaton {
@@ -106,11 +106,27 @@ struct GeneralSuffixAutomaton {
     void mark(string &s) {
         int u=0;
         vector<int> arr;
-        for(auto x:s) u=edp[u].ch[x-B],arr.push_back(u),val[u]++;
+        for(auto x:s) u=edp[u].ch[x-B],arr.push_back(u),cnt[u]++;
         sort(arr.begin(),arr.end(),[](int a,int b){
             return id[a]<id[b];
         });
-        for(int i=1;i<arr.size();i++) val[lca(arr[i-1], arr[i])]--;
+        for(int i=1;i<arr.size();i++) cnt[lca(arr[i-1], arr[i])]--;
+    }
+
+    LL solve(string &s,int k) {
+        int u=0;
+        LL res=0;
+        for(auto x:s) {
+            u=edp[u].ch[x-B];
+            int v=u;
+            if(cnt[v]<k) {
+                for(int i=M;~i;i--) 
+                    if(cnt[fa[v][i]]<k) v=fa[v][i];
+                v=fa[v][0];
+            }
+            res+=edp[v].len;
+        }
+        return res;
     }
 
     int size() { return edp.size(); }
@@ -129,10 +145,11 @@ void solve() {
         sam.extend(s[i]);
     }
     sam.get_adj();
+    get_lca(0);
     relable(0);
     for(int i=0;i<n;i++) sam.mark(s[i]);
     sum(0);
-    
+    for(int i=0;i<n;i++) cout<<sam.solve(s[i],k)<<" \n"[i+1==n];
 }
 
 int main() {
