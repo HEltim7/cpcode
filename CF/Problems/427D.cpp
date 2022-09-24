@@ -3,11 +3,16 @@
 #include <iostream>
 #include <algorithm>
 #include <array>
+#include <queue>
 using namespace std;
 
 #define endl '\n'
 using LL=long long;
-constexpr int N=2e6+10;
+
+constexpr int N=2e4+10;
+bool s1[N],s2[N];
+int mark1[N],mark2[N];
+int ind[N];
 
 struct GeneralSuffixAutomaton {
     constexpr static int A=26;
@@ -25,7 +30,7 @@ struct GeneralSuffixAutomaton {
         tr.clear(),tr.push_back({});
     }
 
-    int new_node() { tr.push_back({}); return tr.size()-1; }
+    int new_tr() { tr.push_back({}); return tr.size()-1; }
     int new_edp() { edp.push_back({}); return edp.size()-1; }
 
     int split(int p,int c,int len) {
@@ -47,7 +52,7 @@ struct GeneralSuffixAutomaton {
         int last;
         if(tr[t][c]) last=edp[p].ch[c];
         else {
-            tr[t][c]=new_node();
+            tr[t][c]=new_tr();
             if(edp[p].ch[c]) last=split(p, c, len);
             else {
                 int cur=last=new_edp();
@@ -61,15 +66,32 @@ struct GeneralSuffixAutomaton {
         p=last;
     }
 
-    void extend(string &s) {
-        for(int p=0,t=0,i=0;i<s.size();i++) extend(p, t, s[i], i+1);
+    void extend(string &s,bool arr[]) {
+        for(int p=0,t=0,i=0;i<s.size();i++) extend(p, t, s[i], i+1),arr[t]=1;
     }
 
-    LL solve() {
-        LL res=0;
-        for(int i=1;i<size();i++) 
-            res+=edp[i].len-edp[edp[i].link].len;
-        return res;
+    void dfs(int t,int u) {
+        if(s1[t]) mark1[u]=1;
+        if(s2[t]) mark2[u]=1;
+        for(int c=0;c<A;c++) if(tr[t][c]) dfs(tr[t][c],edp[u].ch[c]);
+    }
+
+    int solve() {
+        int res=N;
+        dfs(0,0);
+        queue<int> q;
+        for(int i=1;i<size();i++) ind[edp[i].link]++;
+        for(int i=1;i<size();i++) if(!ind[i]) q.push(i);
+        while(q.size()) {
+            int u=q.front();
+            int v=edp[u].link;
+            q.pop();
+            if(mark1[u]==1&&mark2[u]==1) res=min(res,edp[v].len+1);
+            mark1[v]+=mark1[u];
+            mark2[v]+=mark2[u];
+            if(v&&--ind[v]==0) q.push(v);
+        }
+        return res==N?-1:res;
     }
 
     int size() { return edp.size(); }
@@ -80,10 +102,11 @@ struct GeneralSuffixAutomaton {
 } sam(N);
 
 void solve() {
-    int n;
-    cin>>n;
     string s;
-    for(int i=1;i<=n;i++) cin>>s,sam.extend(s);
+    cin>>s;
+    sam.extend(s,s1);
+    cin>>s;
+    sam.extend(s,s2);
     cout<<sam.solve();
 }
 

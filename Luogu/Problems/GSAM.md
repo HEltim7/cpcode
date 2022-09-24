@@ -116,3 +116,245 @@ $sa\notin F(T)$，那我们势必要新建一个等价类$R_{TN}(sa)$。同时�
 ### Case3
 
 我们新建了一个状态$\Phi(TN)_{sa}$，因为$T_y$是叶节点，所以$\Phi(TN)_{sa}$的转移函数为空。和$Case2$类似，不断跳后缀链接，直到一个状态已经存在了一个$a$转移。对于剩下的部分，同样套用$Case2$解决即可。
+
+# 实现
+
+## 在线版本
+
+设$G(T)$为$Trie$的所有叶节点的深度之和。
+
+时间复杂度$O(|T||\Sigma|+G(T))$。
+
+```cpp
+struct GeneralSuffixAutomaton {
+    constexpr static int A=26;
+    constexpr static char B='a';
+    using Arr=array<int, A>;
+    struct Endpos {
+        int link,len;
+        Arr ch;
+    };
+    vector<Endpos> edp;
+    vector<Arr> tr;
+
+    void init() {
+        edp.clear(),edp.push_back({-1});
+        tr.clear(),tr.push_back({});
+    }
+
+    int new_tr() { tr.push_back({}); return tr.size()-1; }
+    int new_edp() { edp.push_back({}); return edp.size()-1; }
+
+    int split(int p,int c,int len) {
+        int q=edp[p].ch[c];
+        if(edp[q].len==len) return q;
+        else {
+            int clone=new_edp();
+            edp[clone]=edp[q];
+            edp[clone].len=len;
+            edp[q].link=clone;
+            for(;p!=-1&&edp[p].ch[c]==q;p=edp[p].link)
+                edp[p].ch[c]=clone;
+            return clone;
+        }
+    }
+
+    void extend(int &p,int &t,char x,int len) {
+        int c=x-B;
+        int last;
+        if(tr[t][c]) last=edp[p].ch[c];
+        else {
+            tr[t][c]=new_tr();
+            if(edp[p].ch[c]) last=split(p, c, len);
+            else {
+                int cur=last=new_edp();
+                edp[cur].len=len;
+                for(;p!=-1&&!edp[p].ch[c];p=edp[p].link)
+                    edp[p].ch[c]=cur;
+                if(p!=-1) edp[cur].link=split(p, c, edp[p].len+1);
+            }
+        }
+        t=tr[t][c];
+        p=last;
+    }
+
+    void extend(string &s) {
+        for(int p=0,t=0,i=0;i<s.size();i++) extend(p, t, s[i], i+1);
+    }
+
+    int size() { return edp.size(); }
+    void clear() { init(); }
+    
+    GeneralSuffixAutomaton() { init(); }
+    GeneralSuffixAutomaton(int sz) { edp.reserve(sz),tr.reserve(sz),init(); }
+};
+```
+
+## 离线版本
+
+我们先建好$Trie$树，然后按照$FIFO$序建立后缀自动机。
+
+按照这种方式构造，我们可以得到一个强力的条件，即每次拓展的都是叶节点。我们可以利用这个条件简化$extend$操作：
+
+- 首先我们不需要再判断$Trie$是否有$c$这个子节点，因为重复的前缀会被$Trie$自动合并。所以我们不再需要考虑$Case1$。
+- 因为每次拓展的都是叶节点，那么必定产生新串。所以我们也不再需要考虑$Case2$。
+- 同样根据叶节点这个性质，每次新建等价类的长度一定是$p$的长度+1。
+
+时间复杂度$O(|T||\Sigma|)$。
+
+```cpp
+struct GeneralSuffixAutomaton {
+    ...
+
+    int extend(int p,int c) {
+        int cur=new_edp();
+        edp[cur].len=edp[p].len+1;
+        for(;p!=-1&&!edp[p].ch[c];p=edp[p].link)
+            edp[p].ch[c]=cur;
+        if(p!=-1) edp[cur].link=split(p, c, edp[p].len+1);
+        return cur;
+    }
+
+    void insert(string &s) {
+        int t=0,c=0;
+        for(auto x:s) {
+            c=x-B;
+            if(!tr[t][c]) tr[t][c]=new_tr();
+            t=tr[t][c];
+        }
+    }
+
+    void build() {
+        queue<pair<int,int>> q;
+        q.emplace(0,0);
+        while(q.size()) {
+            auto [t,p]=q.front();
+            q.pop();
+            for(int c=0;c<A;c++) if(tr[t][c]) 
+                q.emplace(tr[t][c],extend(p, c));
+        }
+    }
+
+    ...
+};
+```
+
+## 离线不带$Trie$版本
+
+观察到$Trie$和$SAM$的$ch$数组具有相似性，当$Trie$的$u$节点有$c$子节点时，那么$SAM$中对应$u$的状态也一定存在$c$转移，于是我们可以用一些神奇的方法把$Trie$和后缀自动机压缩到一起。
+
+我们首先把$SAM$当作一个$Trie$来用，那么利用$SAM$的$ch$数组我们能够模拟出原本应该独立存在的$Trie$，当然此时的$SAM$并不合法。我们思路就是从上往下一层一层地做，每次把一层$SAM$变得合法，而没有遍历到的部分依然当作$Trie$来使用。
+
+具体可以分为这么几个步骤：
+
+首先我们直接丢掉$Trie$，把$insert$操作改成直接插入$SAM$。
+
+```cpp
+void insert(string &s) {
+    int t=0,c=0;
+    for(auto x:s) {
+        c=x-B;
+        if(!edp[t].ch[c]) edp[t].ch[c]=new_edp();
+        t=edp[t].ch[c];
+    }
+}
+```
+
+在$build$时，我们的队列不再需要存储$Trie$的节点，因为这些信息已经在$SAM$中了。
+
+```cpp
+void build() {
+    queue<int> q;
+    q.push(0);
+    while(q.size()) {
+        int p=q.front();
+        q.pop();
+        for(int c=0;c<A;c++) if(edp[p].ch[c]) 
+            extend(p, c),q.push(edp[p].ch[c]);
+    }
+}
+```
+
+最关键的是$extend$操作，考虑之前修改转移的做法：
+
+```cpp
+for(;p!=-1&&!edp[p].ch[c];p=edp[p].link) edp[p].ch[c]=cur;
+```
+
+因为我们存储了$Trie$上的子节点，所以`edp[p].ch[c]`显然不可能为空。把判断条件修改成`edp[p].ch[c]==cur||!edp[p].ch[c]`即可解决这个问题，因为因为每次插入的都是叶节点，所以`cur`这个状态在$SAM$中一定是不存在的，我们直接把它特判成空即可，并且由于我们是递推地把$SAM$变得合法，所以遍历到当前层时，前面的层一定已经合法，对于这些情况我们直接沿用`!edp.ch[c]`这个条件即可。
+
+```cpp
+void extend(int p,int c) {
+    int cur=edp[p].ch[c];
+    edp[cur].len=edp[p].len+1;
+    for(;p!=-1&&(edp[p].ch[c]==cur||!edp[p].ch[c]);p=edp[p].link)
+        edp[p].ch[c]=cur;
+    if(p!=-1) edp[cur].link=split(p, c, edp[p].len+1);
+}
+```
+
+完整的实现
+
+```cpp
+struct GeneralSuffixAutomaton {
+    constexpr static int A=26;
+    constexpr static char B='a';
+    using Arr=array<int, A>;
+    struct Endpos {
+        int link,len;
+        Arr ch;
+    };
+    vector<Endpos> edp;
+
+    void init() { edp.clear(),edp.push_back({-1}); }
+    int new_edp() { edp.push_back({}); return edp.size()-1; }
+
+    int split(int p,int c,int len) {
+        int q=edp[p].ch[c];
+        if(edp[q].len==len) return q;
+        else {
+            int clone=new_edp();
+            edp[clone]=edp[q];
+            edp[clone].len=len;
+            edp[q].link=clone;
+            for(;p!=-1&&edp[p].ch[c]==q;p=edp[p].link)
+                edp[p].ch[c]=clone;
+            return clone;
+        }
+    }
+
+    void extend(int p,int c) {
+        int cur=edp[p].ch[c];
+        edp[cur].len=edp[p].len+1;
+        for(;p!=-1&&(edp[p].ch[c]==cur||!edp[p].ch[c]);p=edp[p].link)
+            edp[p].ch[c]=cur;
+        if(p!=-1) edp[cur].link=split(p, c, edp[p].len+1);
+    }
+
+    void insert(string &s) {
+        int t=0,c=0;
+        for(auto x:s) {
+            c=x-B;
+            if(!edp[t].ch[c]) edp[t].ch[c]=new_edp();
+            t=edp[t].ch[c];
+        }
+    }
+
+    void build() {
+        queue<int> q;
+        q.push(0);
+        while(q.size()) {
+            int p=q.front();
+            q.pop();
+            for(int c=0;c<A;c++) if(edp[p].ch[c]) 
+                extend(p, c),q.push(edp[p].ch[c]);
+        }
+    }
+
+    int size() { return edp.size(); }
+    void clear() { init(); }
+    
+    GeneralSuffixAutomaton() { init(); }
+    GeneralSuffixAutomaton(int sz) { edp.reserve(sz),init(); }
+};
+```
