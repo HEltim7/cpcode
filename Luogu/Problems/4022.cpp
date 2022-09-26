@@ -1,4 +1,5 @@
 #include <array>
+#include <deque>
 #include <vector>
 #include <iostream>
 #include <algorithm>
@@ -10,8 +11,8 @@ constexpr int N=2.2e6+10;
 int len[N];
 
 struct GeneralSuffixAutomaton {
-    constexpr static int A=26;
-    constexpr static char B='a';
+    constexpr static int A=2;
+    constexpr static char B='0';
     using Arr=array<int, A>;
     struct Endpos {
         int link,len;
@@ -82,32 +83,43 @@ struct GeneralSuffixAutomaton {
 } sam(N);
 
 bool check(int n,int k) {
-    vector<int> res;
-    res.reserve(n+1);
-    res.push_back(0);
-    for(int i=1,idx=0;i<=n;i++) {
+    deque<pair<int,int>> pre,suf;
+    int ans=0;
+    for(int i=0;i<=n;i++) {
         if(len[i]>=k) {
-            int j=i-len[i];
-            while(idx+1<res.size()&&idx<j) idx++;
-            res.push_back(res[idx]+)
+            int l=i-len[i];
+            int r=i-k+1;
+            while(suf.size()&&suf.front().first<r) {
+                auto cur=suf.front();
+                suf.pop_front();
+                while(pre.size()&&
+                    cur.second>=pre.back().second+cur.first-pre.back().first)
+                        pre.pop_back();
+                pre.push_back(cur);
+            }
+            while(pre.size()&&pre.front().first<l) pre.pop_front();
+            if(pre.empty()) ans=max(ans,len[i]);
+            else ans=max(ans,pre.front().second+i-pre.front().first);
         }
+        suf.emplace_back(i,ans);
     }
+    return ans*10>=9*n;
 }
 
 void solve() {
     int n,m;
     string s;
     cin>>n>>m;
-    for(int i=1;i<=n;i++) {
+    for(int i=1;i<=m;i++) {
         cin>>s;
         sam.extend(s);
     }
-    while(m--) {
+    while(n--) {
         cin>>s;
         sam.match(s);
         int l=0,r=s.length();
         while(l<r) {
-            int mid=l+r>>1;
+            int mid=l+r+1>>1;
             if(check(s.length(),mid)) l=mid;
             else r=mid-1;
         }
