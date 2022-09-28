@@ -29,6 +29,7 @@
  *   但考虑此头文件的使用场景,这个bug基本不会被触发
  */
 
+#include <array>
 #include<iostream>
 
 namespace debug {
@@ -127,6 +128,25 @@ namespace debug {
             print(p[r]);
             stream.output(flag ? "...]" : "]");
         }
+
+#if __has_include(<array>)
+
+        template<typename T, std::size_t Nm> void
+        print(const array<T, Nm> &var) {
+            if(var.empty()) return;
+            bool flag = 0;
+            int l = 0, r = Nm - 1;
+            if(r - l + 1 > MAXSIZE) r = l + MAXSIZE - 1, flag = 1;
+            stream.output('[');
+            for(int i = l; i < r; i++) {
+                print(var[i]);
+                stream.output(',');
+            }
+            print(var[r]);
+            stream.output(flag ? "...]" : "]");
+        }
+
+#endif
 
         template<typename T, typename U> void
         print(const pair<T,U> &var) {
