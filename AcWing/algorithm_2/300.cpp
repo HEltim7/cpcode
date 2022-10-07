@@ -1,28 +1,32 @@
-#include<iostream>
+#include <vector>
+#include <cstring>
+#include <iostream>
+#include <algorithm>
 using namespace std;
 
-typedef long long LL;
+#define endl '\n'
+using LL=long long;
+constexpr int N=5e3+10;
+LL dp[N],pret[N],prec[N];
 
-const int N=5e3+10;
-LL dp[N];//前i-1已经处理完的集合
-LL pxc[N],pxt[N];
-
-int main(){
-    ios::sync_with_stdio(0);
-    cin.tie(0),cout.tie(0);
+void solve() {
     int n,s;
     cin>>n>>s;
-    for(int i=1;i<=n;i++){
-        cin>>pxt[i],pxt[i]+=pxt[i-1];
-        cin>>pxc[i],pxc[i]+=pxc[i-1];
+    for(int i=1;i<=n;i++) {
+        cin>>pret[i]>>prec[i];
+        pret[i]+=pret[i-1];
+        prec[i]+=prec[i-1];
     }
-
-    for(int i=1;i<=n;i++){
-        dp[i]=pxt[i]*pxc[i]+s*pxc[n];
-        for(int j=1;j<i;j++){
-            dp[i]=min(dp[i],dp[j]+pxt[i]*(pxc[i]-pxc[j])+s*(pxc[n]-pxc[j]));
-        }
-    }
+    memset(dp+1, 0x3f, sizeof(LL)*n);
+    for(int i=1;i<=n;i++)
+        for(int j=0;j<i;j++)
+            dp[i]=min(dp[i],dp[j]+(prec[i]-prec[j])*pret[i]+(prec[n]-prec[j])*s);
     cout<<dp[n];
+}
+
+int main() {
+    ios::sync_with_stdio(0);
+    cin.tie(nullptr);
+    solve();
     return 0;
 }
