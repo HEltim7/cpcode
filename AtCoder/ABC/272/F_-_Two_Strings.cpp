@@ -3,16 +3,8 @@
 #include <algorithm>
 using namespace std;
 
-// #define ONLINE_JUDGE
-#ifndef ONLINE_JUDGE
-#include <heltim7/debug>
-#else
-#define debug(...) 7
-#endif
-
 #define endl '\n'
 using LL=long long;
-
 constexpr int N=8e5+10;
 
 int n,m=1<<7;
@@ -58,26 +50,21 @@ void get_height() {
 void solve() {
     s=" ";
     int t;
-    cin>>t;
     string S,T;
-    cin>>S>>T;
+    cin>>t>>S>>T;
     S+=S;
     S.pop_back();
     T+=T;
-    T.pop_back();
+    T.back()='|';
     s=s+T+S;
     n=s.size()-1;
-    debug(n,s);
 
     get_sa();
     get_height();
-    debug(rk,1,n);
     for(int i=1;i<=t;i++) suf[rk[i]]++;
-    debug(suf,1,n);
     for(int i=n;i>=1;i--) suf[i]+=suf[i+1];
-    debug(suf,1,n);
     LL ans=0;
-    for(int i=2*t;i<=3*t-1;i++) ans+=suf[rk[i]];
+    for(int i=2*t+1;i<=3*t;i++) ans+=suf[rk[i]];
     cout<<ans;
 }
 
