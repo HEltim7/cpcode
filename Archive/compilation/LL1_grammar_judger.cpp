@@ -1,9 +1,10 @@
 /*
- * FF(1) grammar judger
+ * LL(1) grammar judger
  * by HEltim7
  */
 
 #include <set>
+#include <map>
 #include <array>
 #include <queue>
 #include <bitset>
@@ -16,12 +17,27 @@ using namespace std;
 using LL=long long;
 using VI=vector<int>;
 using VS=vector<string>;
+constexpr char empty_char='%';
+const string empty_string="ε";
+
+ostream &operator<<(ostream &os, const string &s) {
+    for(auto x:s) 
+        if(x==empty_char) os<<empty_string;
+        else os<<x;
+    return os;
+}
+
+ostream &operator<<(ostream &os, const char c) {
+    if(c==empty_char) os<<empty_string;
+    else os<<string{c};
+    return os;
+}
 
 struct Grammar {
     constexpr static int A=1<<7;
-    constexpr static char empty_char='.';
     bool LL1=1;
     VS gen,select;
+    map<string,int> mp;
     string left;
     array<VI, A> right;
     array<bool,A> may_empty;
@@ -120,7 +136,7 @@ struct Grammar {
 
         for(int i='a';i<='z';i++) bfs(i);
         bfs('#');
-        for(int i='A';i<='Z';i++) if(may_empty[i]) first[i].push_back('.');
+        for(int i='A';i<='Z';i++) if(may_empty[i]) first[i].push_back(empty_char);
     }
 
     void cal_select() {
@@ -154,46 +170,63 @@ struct Grammar {
                     LL1=0;
                     string res;
                     for(int k=0;k<b.size();k++) if(b[k]) res.push_back(k);
-                    auto outs=[](string &s) {
-                        string res;
-                        for(auto x:s)
-                            if(x==empty_char) res+="ε";
-                            else res+=x;
-                        return res;
-                    };
-                    cout<<"[intersection] select("<<left[i]<<"->"<<outs(gen[i])<<") ∩ "
-                    <<"select("<<left[j]<<"->"<<outs(gen[j])<<") = "<<res<<endl;
+                    cout<<"[intersection] select("<<left[i]<<"->"<<gen[i]<<") ∩ "
+                    <<"select("<<left[j]<<"->"<<gen[j]<<") = "<<res<<endl;
                 }
             }
         }
     }
 
     void output() {
-        auto outs=[](string &s) {
-            string res;
-            for(auto x:s)
-                if(x==empty_char) res+="ε";
-                else res+=x;
-            return res;
-        };
-        auto outc=[](char x) { return x==empty_char?"ε":string{x}; };
-
         for(int i='A';i<='Z';i++) {
-            if(first[i].size()) cout<<"[first] first("<<outc(i)<<") = "<<outs(first[i])<<endl;
+            if(first[i].size()) cout<<"[first] first("<<i<<") = "<<first[i]<<endl;
         }
-        
         cout<<endl;
         for(int i='A';i<='Z';i++) {
-            if(follow[i].size()) cout<<"[follow] follow("<<outc(i)<<") = "<<outs(follow[i])<<endl;
+            if(follow[i].size()) cout<<"[follow] follow("<<i<<") = "<<follow[i]<<endl;
         }
-
         cout<<endl;
         for(int i=0;i<gen.size();i++) {
-            cout<<"[select] select("<<left[i]<<"->"<<outs(gen[i])<<") = "<<outs(select[i])<<endl;
+            cout<<"[select] select("<<left[i]<<"->"<<gen[i]<<") = "<<select[i]<<endl;
         }
-
         cout<<endl;
         check_LL1();
+    }
+
+    bool match(string s,string cur) {
+        if(mp.empty())
+            for(int i=0;i<gen.size();i++)
+                for(auto x:select[i])
+                    mp[string{left[i],x}]=i;
+        s.push_back('#');
+        int step=0;
+        string pre,rule,current;
+        reverse(s.begin(),s.end());
+        while(s.size()&&cur.size()) {
+            if(ister(cur.back())) {
+                if(cur.back()!=s.back()) break;
+                pre.push_back(cur.back());
+                cur.pop_back();
+                s.pop_back();
+            }
+            else {
+                auto it=mp.find(string{cur.back(),s.back()});
+                if(it==mp.end()) return 0;
+                int id=it->second;
+                string ne=gen[id];
+                reverse(ne.begin(),ne.end());
+                cur.pop_back();
+                if(ne!=string{empty_char}) cur+=ne;
+
+                current=cur;
+                reverse(current.begin(),current.end());
+                current=pre+current;
+                rule=string{left[id]}+"->"+gen[id];
+                cout<<"[match: step "<<++step<<"] rule = "<<rule<<" | "
+                    <<"current = "<<current<<endl;
+            }
+        }
+        return (s.empty()||s==string{'#'})&&cur.empty();
     }
 
     void init(vector<string> &raw) {
@@ -241,37 +274,49 @@ void info(string s) { cout<<"[info] "<<s<<endl; }
 void solve(VS &raw) {
     info("initializing...");
     g.init(raw);
-    info("step1: Checking for non-terminators that derive the empty string (\"ε\")...");
+    info("step1: Checking for non-terminators that derive the empty string...");
     g.check_empty();
     info("step2: calculating first and follow set...");
     g.cal_first_follow();
     info("step3: calculating select set...");
     g.cal_select();
     info("step4: checking grammar type...");
-    cout<<string(80,'-')<<endl;
+    cout<<string(74,'-')<<endl;
     g.output();
-    cout<<string(80,'-')<<endl;
+    cout<<string(74,'-')<<endl;
     info("finished!");
-    if(g.LL1) info("this is a LL(1) grammar.");
-    else info("this is NOT a LL(1) grammar.");
+    if(g.LL1) info("this is a LL(1) grammar!");
+    else info("this is NOT a LL(1) grammar!");
 }
 
 void cli(string file) {
     VS raw;
-    string s;
+    string s,ident;
     if(file.empty()) {
-        cout<<"====== FF(1) Grammar Judger (interactive mode) ======"<<endl;
+        cout<<"====== LL(1) Grammar Judger (interactive mode) ======"<<endl;
         info("please input the grammar (input \"end\" to stop)");
-        while(cout<<"G[]= ",cin>>s) {
+        cout<<"identifier = ",cin>>ident;
+        while(cout<<"G["<<ident<<"] = ",cin>>s) {
             if(s=="end") break;
             raw.push_back(s);
         }
     }
     else {
         fstream fin(file,ios::in);
+        fin>>ident;
         while(fin>>s) raw.push_back(s);
+        fin.close();
     }
     solve(raw);
+
+    if(g.LL1) {
+        info("please input some strings to match (input \"end\" to stop)");
+        while(cout<<"> ",cin>>s) {
+            if(s=="end") break;
+            if(g.match(s, ident)) cout<<"[ok] Accepted"<<endl;
+            else cout<<"[error] Rejected"<<endl;
+        }
+    }
 }
 
 int main(int argc, char *argv[]) {
