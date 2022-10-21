@@ -6,7 +6,9 @@ using namespace std;
 
 #define endl '\n'
 using LL=long long;
-constexpr int N=3e5+10,M=3e5;
+
+constexpr int N=2.5e5+10;
+int a[N],b[N],c[N];
 
 template<typename I,typename L,I mod> struct Modint {
     I v;
@@ -95,55 +97,84 @@ template<typename T,int N> struct Matrix {
     Matrix() {}
     Matrix(T x) { for(int i=0;i<N;i++) v[i][i]=x; }
     Matrix(const array<array<T,N>,N> &x) { v=x; }
-};
-
-bool arr[N];
+}; using Mtrx = Matrix<Mint, 3>;
 
 struct SegmentTree {
-
     #define lch (u<<1)
     #define rch (u<<1|1)
-
-    const Matrix<Mint, 2> PX={{{{2,1},{2,1}}}};
-    const Matrix<Mint, 2> NX={{{{2,1},{0,3}}}};
+    constexpr static int MAXSIZE=N;
 
     struct Node {
         int l,r;
-        Matrix<Mint, 2> val,laz;
-        void operator*=(const Matrix<Mint, 2> &x) {
-            val*=x;
-            laz*=x;
-        }
-    } tr[N<<2];
+        Mtrx val,mul,add; 
+    } tr[MAXSIZE<<2];
 
     void pushup(int u) {
         tr[u].val=tr[lch].val+tr[rch].val;
     }
 
-    void pushdn(int u) {
-        tr[lch]*=tr[u].laz;
-        tr[rch]*=tr[u].laz;
-        tr[u].laz.unit();
+    void update(Node &ch, const Node &p) {
+        int len=ch.r-ch.l+1;
+        ch.val*=p.mul;
+        ch.val+=p.add*Mtrx(len);
+        ch.mul*=p.mul;
+        ch.add*=p.mul;
+        ch.add+=p.add;
     }
 
-    void modify(int u,int l,int r,bool type) {
-        if(tr[u].l>=l&&tr[u].r<=r) tr[u]*=type?PX:NX;
+    void pushdn(int u) {
+        update(tr[lch], tr[u]);
+        update(tr[rch], tr[u]);
+        tr[u].mul.unit();
+        tr[u].add.clear();
+    }
+
+    void modify_mul(int u,int l,int r,Mtrx val) {
+        if(tr[u].l>=l&&tr[u].r<=r) {
+            tr[u].val*=val;
+            tr[u].mul*=val;
+            tr[u].add*=val;
+        }
         else {
-            int mid=tr[u].l+tr[u].r>>1;
             pushdn(u);
-            if(mid>=l) modify(lch, l, r, type);
-            if(mid<r) modify(rch, l, r, type);
+            int mid=tr[u].l+tr[u].r>>1;
+            if(mid>=l) modify_mul(lch, l, r, val);
+            if(mid<r) modify_mul(rch, l, r, val);
             pushup(u);
         }
     }
-    
+
+    void modify_add(int u,int l,int r,Mtrx val) {
+        if(tr[u].l>=l&&tr[u].r<=r) {
+            tr[u].val+=val*Mtrx(tr[u].r-tr[u].l+1);
+            tr[u].add+=val;
+        }
+        else {
+            pushdn(u);
+            int mid=tr[u].l+tr[u].r>>1;
+            if(mid>=l) modify_add(lch, l, r, val);
+            if(mid<r) modify_add(rch, l, r, val);
+            pushup(u);
+        }
+    }
+
+    Mtrx query(int u,int l,int r) {
+        if(tr[u].l>=l&&tr[u].r<=r) return tr[u].val;
+        else {
+            pushdn(u);
+            int mid=tr[u].l+tr[u].r>>1;
+            Mtrx res;
+            if(mid>=l) res+=query(lch, l, r);
+            if(mid<r) res+=query(rch, l, r);
+            pushup(u);
+            return res;
+        }
+    }
+
     void build(int u,int l,int r) {
         tr[u]={l,r};
-        tr[u].laz.unit();
-        if(l==r) {
-            if(arr[l]) tr[u].val[0][0]=1;
-            else tr[u].val[0][1]=1;
-        }
+        tr[u].mul.unit();
+        if(l==r) tr[u].val={{{{a[l],b[l],c[l]}}}};
         else {
             int mid=l+r>>1;
             build(lch, l, mid);
@@ -154,30 +185,43 @@ struct SegmentTree {
 
     #undef lch
     #undef rch
-
 } sgt;
 
-int L[N],R[N];
+Mtrx get(int type,int val) {
+    Mtrx res;
+    if(type==1) res.unit(),res[1][0]=1;
+    else if(type==2) res.unit(),res[2][1]=1;
+    else if(type==3) res.unit(),res[0][2]=1;
+    else if(type==4) res[0][0]=val;
+    else if(type==5) res.unit(),res[1][1]=val;
+    else if(type==6) res.unit(),res[2][2]=0;
+    else if(type==7) res[0][2]=val;
+    return res;
+}
 
 void solve() {
-    int n;
+    int n,m;
     cin>>n;
-    int l,r,lmin=N,rmax=0;
-    for(int i=1;i<=n;i++) {
-        cin>>L[i]>>R[i];
-        lmin=min(lmin,L[i]);
-        rmax=max(rmax,R[i]);
-    }
-    for(int i=L[1];i<=R[1];i++) arr[i]=1;
-    sgt.build(1, lmin, rmax);
+    for(int i=1;i<=n;i++) cin>>a[i]>>b[i]>>c[i];
+    sgt.build(1, 1, n);
 
-    for(int i=2;i<=n;i++) {
-        int l=L[i],r=R[i];
-        sgt.modify(1, l, r, 1);
-        if(l-1>=lmin) sgt.modify(1, lmin, l-1, 0);
-        if(r+1<=rmax) sgt.modify(1, r+1, rmax, 0);
+    cin>>m;
+    while(m--) {
+        int op,l,r,v;
+        cin>>op>>l>>r;
+        if(op>=4&&op<=6) cin>>v;
+        if(op<=3) sgt.modify_mul(1, l, r, get(op,0));
+        else if(op==4) sgt.modify_add(1, l, r, get(4,v));
+        else if(op==5) sgt.modify_mul(1, l, r, get(5,v));
+        else if(op==6) {
+            sgt.modify_mul(1, l, r, get(6,0));
+            sgt.modify_add(1, l, r, get(7,v));
+        }
+        else {
+            Mtrx res=sgt.query(1, l, r);
+            cout<<res[0][0]<<' '<<res[0][1]<<' '<<res[0][2]<<endl;
+        }
     }
-    cout<<sgt.tr[1].val[0][0];
 }
 
 int main() {

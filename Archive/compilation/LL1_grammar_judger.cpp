@@ -178,11 +178,11 @@ struct Grammar {
     }
 
     void output() {
-        for(int i='A';i<='Z';i++) {
+        for(char i='A';i<='Z';i++) {
             if(first[i].size()) cout<<"[first] first("<<i<<") = "<<first[i]<<endl;
         }
         cout<<endl;
-        for(int i='A';i<='Z';i++) {
+        for(char i='A';i<='Z';i++) {
             if(follow[i].size()) cout<<"[follow] follow("<<i<<") = "<<follow[i]<<endl;
         }
         cout<<endl;

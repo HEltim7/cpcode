@@ -6,7 +6,6 @@ using namespace std;
 
 #define endl '\n'
 using LL=long long;
-constexpr int N=3e5+10,M=3e5;
 
 template<typename I,typename L,I mod> struct Modint {
     I v;
@@ -47,7 +46,7 @@ template<typename I,typename L,I mod> struct Modint {
     static_assert(0ULL+mod+mod-2<1ULL<<(sizeof(I)*8-1), "Modint overflow");
     static_assert(1ULL*(mod-1)*(mod-1)<1ULL<<(sizeof(L)*8-1), "Modint overflow");
     
-}; using Mint=Modint<int,long long,998244353>;
+}; using Mint=Modint<int,long long,int(1e9+7)>;
 
 template<typename T,int N> struct Matrix {
     array<array<T,N>,N> v;
@@ -97,87 +96,13 @@ template<typename T,int N> struct Matrix {
     Matrix(const array<array<T,N>,N> &x) { v=x; }
 };
 
-bool arr[N];
-
-struct SegmentTree {
-
-    #define lch (u<<1)
-    #define rch (u<<1|1)
-
-    const Matrix<Mint, 2> PX={{{{2,1},{2,1}}}};
-    const Matrix<Mint, 2> NX={{{{2,1},{0,3}}}};
-
-    struct Node {
-        int l,r;
-        Matrix<Mint, 2> val,laz;
-        void operator*=(const Matrix<Mint, 2> &x) {
-            val*=x;
-            laz*=x;
-        }
-    } tr[N<<2];
-
-    void pushup(int u) {
-        tr[u].val=tr[lch].val+tr[rch].val;
-    }
-
-    void pushdn(int u) {
-        tr[lch]*=tr[u].laz;
-        tr[rch]*=tr[u].laz;
-        tr[u].laz.unit();
-    }
-
-    void modify(int u,int l,int r,bool type) {
-        if(tr[u].l>=l&&tr[u].r<=r) tr[u]*=type?PX:NX;
-        else {
-            int mid=tr[u].l+tr[u].r>>1;
-            pushdn(u);
-            if(mid>=l) modify(lch, l, r, type);
-            if(mid<r) modify(rch, l, r, type);
-            pushup(u);
-        }
-    }
-    
-    void build(int u,int l,int r) {
-        tr[u]={l,r};
-        tr[u].laz.unit();
-        if(l==r) {
-            if(arr[l]) tr[u].val[0][0]=1;
-            else tr[u].val[0][1]=1;
-        }
-        else {
-            int mid=l+r>>1;
-            build(lch, l, mid);
-            build(rch, mid+1, r);
-            pushup(u);
-        }
-    }
-
-    #undef lch
-    #undef rch
-
-} sgt;
-
-int L[N],R[N];
-
 void solve() {
-    int n;
+    LL n;
     cin>>n;
-    int l,r,lmin=N,rmax=0;
-    for(int i=1;i<=n;i++) {
-        cin>>L[i]>>R[i];
-        lmin=min(lmin,L[i]);
-        rmax=max(rmax,R[i]);
-    }
-    for(int i=L[1];i<=R[1];i++) arr[i]=1;
-    sgt.build(1, lmin, rmax);
-
-    for(int i=2;i<=n;i++) {
-        int l=L[i],r=R[i];
-        sgt.modify(1, l, r, 1);
-        if(l-1>=lmin) sgt.modify(1, lmin, l-1, 0);
-        if(r+1<=rmax) sgt.modify(1, r+1, rmax, 0);
-    }
-    cout<<sgt.tr[1].val[0][0];
+    Matrix<Mint, 2> res={{{{1,0},{0,0}}}};
+    Matrix<Mint, 2> val={{{{1,1},{1,0}}}};
+    res*=val.pow(n-1);
+    cout<<res[0][0];
 }
 
 int main() {
