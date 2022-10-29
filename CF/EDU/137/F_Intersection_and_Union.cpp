@@ -49,32 +49,38 @@ template<typename I,typename L,I mod> struct Modint {
     
 }; using Mint=Modint<int,long long,998244353>;
 
-template<typename T,int N> struct Matrix {
-    array<array<T,N>,N> v;
+template<typename T,int R,int C=R> struct Matrix {
+    array<array<T,C>,R> v;
 
-    Matrix &operator*=(const Matrix &r) {
-        array<array<T,N>,N> ans;
-        for(int i=0;i<N;i++) {
-            for(int j=0;j<N;j++) {
+    template<int Rr,int Cr> Matrix<T,R,Cr> operator*(const Matrix<T,Rr,Cr> &r) {
+        static_assert(C==Rr,"");
+        array<array<T,Cr>,R> ans;
+        for(int i=0;i<R;i++) {
+            for(int j=0;j<C;j++) {
                 T res{};
-                for(int k=0;k<N;k++)
+                for(int k=0;k<C;k++)
                     res+=v[i][k]*r[k][j];
                 ans[i][j]=res;
             }
         }
-        v=ans;
-        return *this;
+        return ans;
     }
 
-    Matrix &operator+=(const Matrix &r) {
-        for(int i=0;i<N;i++) for(int j=0;j<N;j++) v[i][j]+=r[i][j];
-        return *this;
+    Matrix operator+(const Matrix &r) {
+        array<array<T,C>,R> ans;
+        for(int i=0;i<R;i++) for(int j=0;j<C;j++) ans[i][j]=v[i][j]+r[i][j];
+        return ans;
     }
 
-    Matrix &operator-=(const Matrix &r) {
-        for(int i=0;i<N;i++) for(int j=0;j<N;j++) v[i][j]-=r[i][j];
-        return *this;
+    Matrix operator-(const Matrix &r) {
+        array<array<T,C>,R> ans;
+        for(int i=0;i<R;i++) for(int j=0;j<C;j++) ans[i][j]=v[i][j]-r[i][j];
+        return ans;
     }
+
+    Matrix &operator*=(const Matrix<T,C,C> &r) { return *this=*this*r; }
+    Matrix &operator+=(const Matrix &r) { return *this=*this+r; }
+    Matrix &operator-=(const Matrix &r) { return *this=*this-r; }
 
     Matrix pow(long long k) {
         Matrix res(1),x=*this;
@@ -82,19 +88,15 @@ template<typename T,int N> struct Matrix {
         return res;
     }
 
-    friend Matrix operator*(Matrix l,const Matrix &r) { return l*=r; }
-    friend Matrix operator+(Matrix l,const Matrix &r) { return l+=r; }
-    friend Matrix operator-(Matrix l,const Matrix &r) { return l-=r; }
-
-    auto &operator[](int idx) { return v[idx]; }
+    auto &operator[](int idx)       { return v[idx]; }
     auto &operator[](int idx) const { return v[idx]; }
 
     void clear() { v={}; }
-    void unit(T x=1) { clear(); for(int i=0;i<N;i++) v[i][i]=x; }
+    void unit(T x=1) { static_assert(R==C,""); clear(); for(int i=0;i<R;i++) v[i][i]=x; }
 
-    Matrix() {}
-    Matrix(T x) { for(int i=0;i<N;i++) v[i][i]=x; }
-    Matrix(const array<array<T,N>,N> &x) { v=x; }
+    Matrix() { clear(); }
+    Matrix(T x) { unit(x); }
+    Matrix(const array<array<T,C>,R> &x) { v=x; }
 };
 
 bool arr[N];
@@ -109,7 +111,8 @@ struct SegmentTree {
 
     struct Node {
         int l,r;
-        Matrix<Mint, 2> val,laz;
+        Matrix<Mint, 1, 2> val;
+        Matrix<Mint, 2, 2> laz;
         void operator*=(const Matrix<Mint, 2> &x) {
             val*=x;
             laz*=x;
