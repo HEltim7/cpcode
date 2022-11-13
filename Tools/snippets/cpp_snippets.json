@@ -1602,10 +1602,10 @@
 		"description": "General Suffix Automaton (offline version, without trie)",
 	},	
 
-	"EerTree": {
+	"Palindrome Automaton": {
 		"prefix": "#pam",
 		"body": [
-			"struct EerTree {",
+			"struct PalindromeAutomaton {",
 			"    const static int A=26;",
 			"    const static char B='a';",
 			"    struct Node {",
@@ -1615,15 +1615,15 @@
 			"    };",
 			"    vector<Node> node;",
 			"    string str;",
-			"    int sz,last;",
+			"    int last;",
 			"",
 			"    int new_node(int len) {",
 			"        node.push_back({len});",
-			"        return ++sz;",
+			"        return node.size()-1;",
 			"    }",
 			"    ",
-			"    void init() {",
-			"        sz=-1;",
+			"    void clear() {",
+			"        node.clear();",
 			"        last=0;",
 			"        str=\"!\";",
 			"        new_node(0);",
@@ -1650,11 +1650,13 @@
 			"    }",
 			"",
 			"    void build(string &s) { for(auto x:s) extend(x); }",
+			"    int size() { return node.size(); }",
 			"",
-			"    EerTree() { init(); }",
+			"    PalindromeAutomaton() { clear(); }",
+			"    PalindromeAutomaton(int sz) { str.reserve(sz),node.reserve(sz),clear(); }",
 			"} pam;",
 		],
-		"description": "Palindrome Tree",
+		"description": "Palindrome Automaton",
 	},
 	
 

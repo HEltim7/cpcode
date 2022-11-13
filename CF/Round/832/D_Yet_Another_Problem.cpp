@@ -1,48 +1,48 @@
+#include <set>
+#include <map>
 #include <vector>
 #include <iostream>
 #include <algorithm>
 using namespace std;
 
 #define endl '\n'
-#define lowbit(x) (x&(-x))
 using LL=long long;
-constexpr int N=2e5+10,M=35;
-int arr[N],cnt[N][M];
+constexpr int N=2e5+10;
+int arr[N],pre[N];
+set<int> not_zero;
+map<int,set<int>> pos[2];
 
 void solve() {
     int n,q;
     cin>>n>>q;
     for(int i=1;i<=n;i++) {
         cin>>arr[i];
-        int x=arr[i];
-        for(int j=0;j<M;j++) cnt[i][j]=cnt[i-1][j];
-        while(x) {
-            cnt[i][lowbit(x)]++;
-            x-=lowbit(x);
-        }
+        pre[i]=arr[i]^pre[i-1];
+        if(arr[i]) not_zero.insert(i);
+        auto &cur=pos[i&1];
+        auto it=cur.find(pre[i]);
+        if(it==cur.end()) cur.insert({pre[i],{i}});
+        else it->second.insert(i);
     }
 
     while(q--) {
-        int l,r;
+        int l,r,len;
         cin>>l>>r;
-        bool flag=1,zero=1;
-        for(int i=0;i<M;i++) {
-            int val=cnt[r][i]-cnt[l-1][i];
-            if(val&1) {
-                cout<<"-1"<<endl;
-                flag=0;
-                break;
-            }
-            else if(val) zero=0;
-        }
-        if(!flag) continue;
-
-        if(zero) cout<<0<<endl;
-        else if((r-l+1)%2) cout<<1<<endl;
+        len=r-l+1;
+        auto it=not_zero.lower_bound(l);
+        if(it==not_zero.end()||*it>r) cout<<0<<endl;
+        else if(pre[r]^pre[l-1]) cout<<-1<<endl;
+        else if(len&1||arr[l]==0||arr[r]==0) cout<<1<<endl;
+        else if(len==2) cout<<-1<<endl;
         else {
-            if(arr[l]==0||arr[r]==0) cout<<1<<endl;
+            auto &cur=pos[l&1];
+            auto it=cur.find(pre[l-1]);
+            if(it==cur.end()) cout<<-1<<endl;
             else {
-                
+                auto &st=it->second;
+                auto itt=st.lower_bound(l);
+                if(itt==st.end()||*itt>r) cout<<-1<<endl;
+                else cout<<2<<endl;
             }
         }
     }
