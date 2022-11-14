@@ -788,3 +788,106 @@ void solve() {
     }
 }
 ```
+
+## HDU 5421 Victor and String
+
+### 思路
+
+回文自动机的拓展：双端回文自动机。顾名思义，是支持双向插入字符的回文自动机。
+
+由于回文串良好的性质，使得我们只需要对单端$PAM$稍作修改即可得到双端$PAM$：
+
+1. 首先我们需要将$last$变成两个，分别用来表示左右端的最长回文串在$PAM$上的状态。
+2. 然后模仿普通$PAM$得到左侧的$getfail()$函数。
+3. 特别的，当某次新增的回文串恰好是整个串时，我们需要同时更新两个$last$来保证正确性，并且不难证明只有这种情况需要同时更新。
+4. 最后把`string`改成`deque`即可，另外需要去掉特殊符号，否则匹配字符串时会出错。
+
+时间复杂度依然为$\mathcal{O(n)}$，具体的步骤可以参考代码。
+
+### 实现
+
+```cpp
+constexpr int N=1e5+10;
+LL ans=0;
+
+struct PalindromeAutomaton {
+    const static int A=26;
+    const static char B='a';
+    struct Node {
+        int len,link;
+        int cnt;
+        int ch[A];
+    };
+    vector<Node> node;
+    deque<char> str;
+    int last_l,last_r;
+
+    int new_node(int len) {
+        node.push_back({len});
+        return node.size()-1;
+    }
+    
+    void clear() {
+        node.clear();
+        last_l=last_r=0;
+        str.clear();
+        new_node(0);
+        new_node(-1);
+        node[0].link=1;
+    }
+
+    template<typename T> void extend(char x,int &last,T getfail) {
+        int c=x-B;
+        int pre=getfail(last);
+        if(!node[pre].ch[c]) {
+            int cur=new_node(node[pre].len+2);
+            node[cur].link=node[getfail(node[pre].link)].ch[c];
+            node[pre].ch[c]=cur;
+            node[cur].cnt=node[node[cur].link].cnt+1;
+        }
+        last=node[pre].ch[c];
+        if(node[last].len==str.size()) last_l=last_r=last;
+        ans+=node[last].cnt;
+    }
+
+    void extend_l(char x) {
+        str.push_front(x);
+        extend(x, last_l, [&](int x) {
+            int n=int(str.size())-1;
+            while(node[x].len+1>n||str[node[x].len+1]!=str[0]) x=node[x].link;
+            return x;
+        });
+    }
+
+    void extend_r(char x) {
+        str.push_back(x);
+        extend(x, last_r, [&](int x) {
+            int n=int(str.size())-1;
+            while(n-node[x].len-1<0||str[n-node[x].len-1]!=str[n]) x=node[x].link;
+            return x;
+        });
+    }
+
+    int size() { return node.size(); }
+
+    PalindromeAutomaton() { clear(); }
+    PalindromeAutomaton(int sz) { node.reserve(sz),clear(); }
+} pam(N);
+
+void solve() {
+    int n;
+    while(cin>>n) {
+        ans=0;
+        pam.clear();
+        while(n--) {
+            int op;
+            char in;
+            cin>>op;
+            if(op==1) cin>>in,pam.extend_l(in);
+            else if(op==2) cin>>in,pam.extend_r(in);
+            else if(op==3) cout<<pam.size()-2<<endl;
+            else cout<<ans<<endl;
+        }
+    }
+}
+```
