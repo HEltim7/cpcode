@@ -1862,7 +1862,7 @@
 	"LCA": {
 		"prefix": "#lca",
 		"body": [
-			"constexpr int N=1e5+10,M=20;",
+			"constexpr int N=1e5+10,M=__lg(N);",
 			"int fa[N][M+1],dep[N]={0,1};",
 			"",
 			"void get_lca(int u,int p) {",

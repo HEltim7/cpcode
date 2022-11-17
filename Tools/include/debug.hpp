@@ -29,17 +29,29 @@
  *   但考虑此头文件的使用场景,这个bug基本不会被触发
  */
 
-#include <array>
-#include<iostream>
+#include <iostream>
 
 namespace debug {
 
     using namespace std;
 
-    int MAXSIZE = 100;  //max output size
-    ostream &os = cerr; //default ostream
+    inline int MAXSIZE = 100;  //max output size
+    inline ostream &os = cerr; //default ostream
+
+    inline ostream &operator<<(ostream &os,unsigned __int128 x) {
+        string res;
+        while(x) res.push_back(x%10+'0'),x/=10;
+        while(res.size()) os<<res.back(),res.pop_back();
+        return os;
+    }
+
+    inline ostream &operator<<(ostream &os,__int128 x) {
+        if(x<0) return os<<'-'<<-x;
+        return os<<(unsigned __int128)x;
+    }
 
     struct Stream {
+
 
         template<typename T> 
         void output_impl(const T &var) {
@@ -129,7 +141,7 @@ namespace debug {
             stream.output(flag ? "...]" : "]");
         }
 
-#if __has_include(<array>)
+#ifdef _GLIBCXX_ARRAY
 
         template<typename T, std::size_t Nm> void
         print(const array<T, Nm> &var) {
@@ -312,13 +324,6 @@ namespace debug {
         }
 
 #ifdef _GLIBCXX_VECTOR
-        template<typename... T> void
-        unpack(string name, int idx, const vector<T...> &var) {
-            logn.print(name,idx);
-            logv.print(var,0,var.size()-1);
-            stream.endline();
-        }
-
         template<typename... T, typename... U> void
         unpack(string name, int idx, const vector<T...> &var, int l, int r, const U&... vars) {
             logn.print(name,idx,l,r);
