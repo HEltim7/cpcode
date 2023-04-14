@@ -10,43 +10,40 @@ constexpr int N=3e5+10,M=3e5;
 
 template<typename I,typename L,I mod> struct Modint {
     I v;
-    I pow(L b) const {
+    constexpr I pow(L b) const {
         L res=1,a=v;
         while(b) { if(b&1) res=res*a%mod; b>>=1; a=a*a%mod; }
         return res;
     }
-    I inv() const { return pow(mod-2); }
+    constexpr I inv() const { return pow(mod-2); }
 
-    Modint &operator+=(const Modint &x) { v+=x.v; v-=v>=mod?mod:0; return *this; }
-    Modint &operator-=(const Modint &x) { v-=x.v; v+=v<0?mod:0; return *this; }
-    Modint &operator*=(const Modint &x) { v=L(1)*v*x.v%mod; return *this; }
-    Modint &operator/=(const Modint &x) { v=L(1)*v*x.inv()%mod; return *this; }
+    constexpr Modint &operator+=(const Modint &x) { v+=x.v; v-=v>=mod?mod:0; return *this; }
+    constexpr Modint &operator-=(const Modint &x) { v-=x.v; v+=v<0?mod:0; return *this; }
+    constexpr Modint &operator*=(const Modint &x) { v=L(1)*v*x.v%mod; return *this; }
+    constexpr Modint &operator/=(const Modint &x) { v=L(1)*v*x.inv()%mod; return *this; }
 
-    friend Modint operator+(Modint l,const Modint &r) { return l+=r; }
-    friend Modint operator-(Modint l,const Modint &r) { return l-=r; }
-    friend Modint operator*(Modint l,const Modint &r) { return l*=r; }
-    friend Modint operator/(Modint l,const Modint &r) { return l/=r; }
+    friend constexpr Modint operator+(Modint l,const Modint &r) { return l+=r; }
+    friend constexpr Modint operator-(Modint l,const Modint &r) { return l-=r; }
+    friend constexpr Modint operator*(Modint l,const Modint &r) { return l*=r; }
+    friend constexpr Modint operator/(Modint l,const Modint &r) { return l/=r; }
+    friend constexpr Modint operator-(Modint r) { r.v=mod-r.v; return r; }
 
-    Modint operator++(int) { auto res=*this; *this+=1; return res; }
-    Modint operator--(int) { auto res=*this; *this-=1; return res; }
-    Modint operator-  () { return *this*-1; }
-    Modint &operator++() { return *this+=1; }
-    Modint &operator--() { return *this-=1; }
+    Modint operator++(int) { auto res=*this; ++*this; return res; }
+    Modint operator--(int) { auto res=*this; --*this; return res; }
+    Modint &operator++() { v=v==mod-1?0:v+1; return *this; }
+    Modint &operator--() { v=v?v-1:mod-1; return *this; }
 
-    bool operator< (const Modint&x) { return v< x.v; }
-    bool operator> (const Modint&x) { return v> x.v; }
-    bool operator<=(const Modint&x) { return v<=x.v; }
-    bool operator>=(const Modint&x) { return v>=x.v; }
-    bool operator==(const Modint&x) { return v==x.v; }
-    bool operator!=(const Modint&x) { return v!=x.v; }
+    constexpr bool operator< (const Modint &x) const { return v< x.v; }
+    constexpr bool operator> (const Modint &x) const { return v> x.v; }
+    constexpr bool operator<=(const Modint &x) const { return v<=x.v; }
+    constexpr bool operator>=(const Modint &x) const { return v>=x.v; }
+    constexpr bool operator==(const Modint &x) const { return v==x.v; }
+    constexpr bool operator!=(const Modint &x) const { return v!=x.v; }
 
-    friend istream &operator>>(istream &is,Modint &x) { return is>>x.v; }
+    friend istream &operator>>(istream &is,Modint &x) { is>>x.v; x=Modint(x.v); return is; }
     friend ostream &operator<<(ostream &os,const Modint &x) { return os<<x.v; }
 
-    Modint(L x=0): v((x%=mod)<0?x+mod:x) {}
-    static_assert(0ULL+mod+mod-2<1ULL<<(sizeof(I)*8-1), "Modint overflow");
-    static_assert(1ULL*(mod-1)*(mod-1)<1ULL<<(sizeof(L)*8-1), "Modint overflow");
-    
+    constexpr Modint(L x=0): v((x%=mod)<0?x+mod:x) {}
 }; using Mint=Modint<int,long long,998244353>;
 
 template<typename T,int R,int C=R> struct Matrix {
@@ -91,12 +88,12 @@ template<typename T,int R,int C=R> struct Matrix {
     auto &operator[](int idx)       { return v[idx]; }
     auto &operator[](int idx) const { return v[idx]; }
 
-    void clear() { v={}; }
-    void unit(T x=1) { static_assert(R==C,""); clear(); for(int i=0;i<R;i++) v[i][i]=x; }
+    constexpr void clear() { v={}; }
+    constexpr void unit(T x=1) { static_assert(R==C,""); clear(); for(int i=0;i<R;i++) v[i][i]=x; }
 
-    Matrix() { clear(); }
-    Matrix(T x) { unit(x); }
-    Matrix(const array<array<T,C>,R> &x) { v=x; }
+    constexpr Matrix() { clear(); }
+    constexpr Matrix(T x) { unit(x); }
+    constexpr Matrix(const array<array<T,C>,R> &x) { v=x; }
 };
 
 bool arr[N];
@@ -106,8 +103,8 @@ struct SegmentTree {
     #define lch (u<<1)
     #define rch (u<<1|1)
 
-    const Matrix<Mint, 2> PX={{{{2,1},{2,1}}}};
-    const Matrix<Mint, 2> NX={{{{2,1},{0,3}}}};
+    static constexpr Matrix<Mint, 2> PX={{{{2,1},{2,1}}}};
+    static constexpr Matrix<Mint, 2> NX={{{{2,1},{0,3}}}};
 
     struct Node {
         int l,r;

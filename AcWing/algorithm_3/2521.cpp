@@ -1,82 +1,86 @@
-#include<iostream>
-#include<algorithm>
-#include<cmath>
+#pragma GCC optimize("O2")
+#include <tuple>
+#include <vector>
+#include <iostream>
+#include <algorithm>
 using namespace std;
 
 #define endl '\n'
-const int N=1e4+10,M=1e6+10;
-struct QUERY{
-    int qid;
-    int left;
-    int right;
-    int time;
-}Q[N];
-struct REPLACE{
-    int p;
-    int col;
-}R[N];
-int cnt[N],pen[M],ans[N];
-int len,qcnt,rcnt;
+using LL=long long;
 
-inline int getid(int a){
-    return a/len;
+namespace mo {
+    constexpr int N=1e4+10,Q=1e4+10,M=1e6+10,block=223;
+    using Query=tuple<int,int,int,int>;
+    vector<Query> query;
+    int ans[Q],w[N],cnt[M],p[Q],nw[Q];
+    
+    void solve() {
+        auto getid=[](int x) {
+            return x/block;
+        };
+
+        sort(query.begin(),query.end(),[&](const Query &x,const Query &y) {
+            const auto &[l,r,t,_]=x;
+            const auto &[L,R,T,__]=y;
+            if(getid(l)!=getid(L)) return getid(l)<getid(L);
+            if(getid(r)!=getid(R)) return getid(r)<getid(R);
+            return t<T;
+        });
+
+        int l=1,r=0,tm=0,res=0;
+        
+        auto add=[&](int idx) {
+            if(++cnt[w[idx]]==1) res++;
+        };
+
+        auto del=[&](int idx) {
+            if(--cnt[w[idx]]==0) res--;
+        };
+
+        auto modify=[&](int t) {
+            if(p[t]>=l&&p[t]<=r) del(p[t]);
+            swap(w[p[t]],nw[t]);
+            if(p[t]>=l&&p[t]<=r) add(p[t]);
+        };
+
+        auto rollback=[&](int t) {
+            modify(t);
+        };
+        
+        for(const auto &[L,R,T,id]:query) {
+            while(l>L) add(--l);
+            while(r<R) add(++r);
+            while(l<L) del(l++);
+            while(r>R) del(r--);
+            while(tm<T) modify(++tm);
+            while(tm>T) rollback(tm--);
+            ans[id]=res;
+        }
+    }
 }
 
-inline void add(int x,int &res){
-    if(++cnt[x]==1) res++;
-}
-
-inline void del(int x,int &res){
-    if(--cnt[x]==0) res--;
-}
-
-inline bool cmp(QUERY a,QUERY b){
-    int al=getid(a.left),ar=getid(a.right);
-    int bl=getid(b.left),br=getid(b.right);
-    if(al!=bl) return al<bl;
-    else if(ar!=br) return ar<br;
-    return a.time<b.time;
+void solve() {
+    int n,q;
+    cin>>n>>q;
+    for(int i=1;i<=n;i++) cin>>mo::w[i];
+    int qid=0;
+    for(int i=1,t=0;i<=q;i++) {
+        char op;
+        int x,y;
+        cin>>op>>x>>y;
+        if(op=='Q') mo::query.emplace_back(x,y,t,++qid);
+        else {
+            mo::p[++t]=x;
+            mo::nw[t]=y;
+        }
+    }
+    mo::solve();
+    for(int i=1;i<=qid;i++) cout<<mo::ans[i]<<endl;
 }
 
 int main() {
     ios::sync_with_stdio(0);
-    cin.tie(0),cout.tie(0);
-    int n,m;
-    cin>>n>>m;
-    for(int i=1;i<=n;i++) cin>>pen[i];
-    while(m--){
-        int a,b;
-        string op;
-        cin>>op>>a>>b;
-        if(op[0]=='Q') Q[++qcnt]={qcnt,a,b,rcnt};
-        else R[++rcnt]={a,b};
-    }
-    len=max(1,(int)cbrt(n*rcnt));
-    sort(Q+1,Q+1+qcnt,cmp);
-    for(int q=1,i=1,j=0,k=0,res=0;q<=qcnt;q++){
-        int l=Q[q].left,r=Q[q].right,t=Q[q].time,qid=Q[q].qid;
-        while(j<r) add(pen[++j],res);
-        while(j>r) del(pen[j--],res);
-        while(i<l) del(pen[i++],res);
-        while(i>l) add(pen[--i],res);
-        while(k<t){
-            k++;
-            if(R[k].p>=i&&R[k].p<=j){
-                add(R[k].col,res);
-                del(pen[R[k].p],res);
-            }
-            swap(pen[R[k].p],R[k].col);
-        }
-        while(k>t){
-            if(R[k].p>=i&&R[k].p<=j){
-                add(R[k].col,res);
-                del(pen[R[k].p],res);
-            }
-            swap(pen[R[k].p],R[k].col);
-            k--;
-        }
-        ans[qid]=res;
-    }
-    for(int i=1;i<=qcnt;i++) cout<<ans[i]<<endl;
+    cin.tie(nullptr);
+    solve();
     return 0;
 }

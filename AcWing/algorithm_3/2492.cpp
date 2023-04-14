@@ -1,60 +1,70 @@
-#include<iostream>
-#include<tuple>
-#include<algorithm>
-#include<cmath>
+#pragma GCC optimize("O2")
+#include <tuple>
+#include <vector>
+#include <iostream>
+#include <algorithm>
 using namespace std;
 
 #define endl '\n'
-typedef tuple<int,int,int> TIII;
-const int N=50000+10,M=2e5+10,P=1000000+10;
+using LL=long long;
 
-TIII q[M];//query
-int len;//length of block
-int arr[N],ans[M],cnt[P];
+namespace mo {
+    constexpr int N=5e4+10,Q=2e5+10,M=1e6+10,block=112;
+    using Query=tuple<int,int,int>;
+    vector<Query> query;
+    int ans[Q],w[M],cnt[M];
+    
+    void solve() {
+        auto getid=[](int x) {
+            return x/block;
+        };
 
-inline int getid(int x){
-    return x/len;
+        sort(query.begin(),query.end(),[&](const Query &x,const Query &y) {
+            const auto &[l,r,_]=x;
+            const auto &[L,R,__]=y;
+            if(getid(l)!=getid(L)) return getid(l)<getid(L);
+            return getid(l)&1?r<R:r>R;
+        });
+
+        int l=1,r=0,res=0;
+        
+        auto add=[&](int idx) {
+            if(++cnt[w[idx]]==1) res++;
+        };
+
+        auto del=[&](int idx) {
+            if(--cnt[w[idx]]==0) res--;
+        };
+        
+        for(const auto &[L,R,id]:query) {
+            while(l>L) add(--l);
+            while(r<R) add(++r);
+            while(l<L) del(l++);
+            while(r>R) del(r--);
+            ans[id]=res;
+        }
+    }
+
+    void clear() { query.clear(); }
 }
 
-inline bool cmp(TIII &a,TIII &b){
-    if(getid(get<0>(a))!=getid(get<0>(b)))
-        return get<0>(a)<get<0>(b);
-    return get<1>(a)<get<1>(b);
-}
-
-inline void add(int x,int &res){
-    cnt[x]++;
-    if(cnt[x]==1) res++;
-}
-
-inline void del(int x,int &res){
-    cnt[x]--;
-    if(cnt[x]==0) res--;
+void solve() {
+    int n,q;
+    cin>>n;
+    for(int i=1;i<=n;i++) cin>>mo::w[i];
+    cin>>q;
+    for(int i=1;i<=q;i++) {
+        int l,r;
+        cin>>l>>r;
+        mo::query.emplace_back(l,r,i);
+    }
+    mo::solve();
+    for(int i=1;i<=q;i++) cout<<mo::ans[i]<<endl;
 }
 
 int main() {
     ios::sync_with_stdio(0);
-    cin.tie(0),cout.tie(0);
-    int n,m;
-    cin>>n;
-    for(int i=1;i<=n;i++) cin>>arr[i];
-    cin>>m;
-    for(int i=1;i<=m;i++){
-        auto &[l,r,qid]=q[i];
-        cin>>l>>r;
-        qid=i;
-    }
-    len=max(1,(int)sqrt(n*1.*n/m));
-    sort(q+1,q+1+m,cmp);
-
-    for(int i=1,l=1,r=0,res=0;i<=m;i++){
-        auto &[a,b,qid]=q[i];
-        while(r<b) add(arr[++r],res);
-        while(r>b) del(arr[r--],res);
-        while(l<a) del(arr[l++],res);
-        while(l>a) add(arr[--l],res);
-        ans[qid]=res;
-    }
-    for(int i=1;i<=m;i++) cout<<ans[i]<<endl;
+    cin.tie(nullptr);
+    solve();
     return 0;
 }

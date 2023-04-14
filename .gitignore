@@ -28,10 +28,8 @@
 # image file
 !*.png
 
-# config
-!*_snippets.json
-
 # re-ignore
 .vscode
 .cph
 tempCodeRunnerFile.cpp
+tmp

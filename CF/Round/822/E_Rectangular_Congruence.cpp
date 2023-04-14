@@ -11,15 +11,14 @@ int arr[N][N];
 void solve() {
     int n;
     cin>>n;
-    for(int i=1;i<=n;i++) {
-        int in;
-        cin>>in;
-        for(int j=i;j<=n;j++) arr[i][j]=in+j-i;
-        for(int j=i;j>=1;j--) arr[i][j]=in+i-j;
+    for(int i=0;i<n;i++) {
+        cin>>arr[i][i];
+        for(int k=1;k<n;k++)
+            arr[i][(i+k)%n]=(arr[i][i]+k*(i+1))%n;
     }
-    for(int i=1;i<=n;i++)
-        for(int j=1;j<=n;j++)
-            cout<<arr[i][j]<<" \n"[j==n];
+    for(int i=0;i<n;i++)
+        for(int j=0;j<n;j++)
+            cout<<arr[i][j]<<" \n"[j+1==n];
 }
 
 int main() {
