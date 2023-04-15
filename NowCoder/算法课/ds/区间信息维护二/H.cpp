@@ -7,18 +7,21 @@ using namespace std;
 #define endl '\n'
 using LL=long long;
 constexpr int N=3e5+10;
+int maxm,maxk;
 
 struct Info {
-    
+    int m,k;
     void init(int l,int r) {
         if(l!=r) return;
-        
+        m=maxm;
+        k=maxk;
     }
     void init(int l) { init(l,l); }
 
     Info operator+(const Info &r) const {
         Info res;
-        
+        res.m=max(m,r.m);
+        res.k=max(k,r.k);
         return res;
     }
 
@@ -65,6 +68,15 @@ template<class Info,int size> struct SegmentTree {
         while(u>>=1) pushup(u);
     }
 
+    int modify(int cnt) {
+        int u=1;
+        if(tr[1].info.m<cnt||tr[1].k<=0) return false;
+        while(tr[u].l!=tr[u].r) {
+            if(tr[lch].info.m>=cnt&&tr[lch].info.k) u=lch;
+            else u=rch;
+        }
+    }
+
     void build(int u,int l,int r) {
         tr[u].init(l,r);
         if(l!=r) {
@@ -83,9 +95,14 @@ template<class Info,int size> struct SegmentTree {
 SegmentTree<Info, N> sgt;
 
 void solve() {
-    int n,m,k;
-    cin>>n>>m>>k;
+    int n;
+    cin>>n>>maxm>>maxk;
+    sgt.build(1,n);
+    for(int i=1;i<=n;i++) {
+        int a;
+        cin>>a;
 
+    }
 }
 
 int main() {
