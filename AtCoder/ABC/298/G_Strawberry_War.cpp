@@ -8,8 +8,8 @@ using namespace std;
 using LL=long long;
 constexpr int N=7;
 constexpr LL INF=1e18;
-LL dp[N][N][N][N][N];
-bool mark[N][N][N][N][N];
+LL dp[N][N][N][N][N*N];
+bool mark[N][N][N][N][N*N];
 LL s[N][N],pre[N][N];
 
 LL get(int l,int r,int u,int d) {
