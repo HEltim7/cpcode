@@ -6,22 +6,22 @@ using namespace std;
 
 #define endl '\n'
 using LL=long long;
-constexpr int N=3e5+10;
+constexpr int N=3e5+10,INF=1e9;
 int maxm,maxk;
+int cnt[N];
 
 struct Info {
-    int m,k;
+    int minn;
+
     void init(int l,int r) {
         if(l!=r) return;
-        m=maxm;
-        k=maxk;
+        minn=0;
     }
     void init(int l) { init(l,l); }
 
-    Info operator+(const Info &r) const {
+    friend Info operator+(const Info &l,const Info &r) {
         Info res;
-        res.m=max(m,r.m);
-        res.k=max(k,r.k);
+        res.minn=min(l.minn,r.minn);
         return res;
     }
 
@@ -51,6 +51,12 @@ template<class Info,int size> struct SegmentTree {
         tr[u].info=tr[lch].info+tr[rch].info;
     }
 
+    int find_first(int u,int val) {
+        if(tr[u].l==tr[u].r) return tr[u].l;
+        if(tr[lch].info.minn+val<=maxm) return find_first(lch,val);
+        return find_first(rch,val);
+    }
+
     Info query(int u,int l,int r) {
         if(tr[u].l>=l&&tr[u].r<=r) { return tr[u].info; }
         else {
@@ -62,19 +68,11 @@ template<class Info,int size> struct SegmentTree {
     }
     Info query(int l,int r) { return query(1,l,r); }
 
-    void modify(int p,const Info &v) {
+    void modify(int p,const int &v) {
         int u=leaf[p];
-        tr[u].info=v;
+        tr[u].info.minn+=v;
+        if(++cnt[p]>=maxk) tr[u].info.minn=INF;
         while(u>>=1) pushup(u);
-    }
-
-    int modify(int cnt) {
-        int u=1;
-        if(tr[1].info.m<cnt||tr[1].k<=0) return false;
-        while(tr[u].l!=tr[u].r) {
-            if(tr[lch].info.m>=cnt&&tr[lch].info.k) u=lch;
-            else u=rch;
-        }
     }
 
     void build(int u,int l,int r) {
@@ -97,11 +95,18 @@ SegmentTree<Info, N> sgt;
 void solve() {
     int n;
     cin>>n>>maxm>>maxk;
+    for(int i=1;i<=n;i++) cnt[i]=0;
     sgt.build(1,n);
     for(int i=1;i<=n;i++) {
         int a;
         cin>>a;
-
+        if(sgt.tr[1].info.minn+a>maxm) {
+            cout<<-1<<endl;
+            continue;
+        }
+        int p=sgt.find_first(1,a);
+        sgt.modify(p,a);
+        cout<<p<<endl;
     }
 }
 

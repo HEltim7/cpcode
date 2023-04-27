@@ -12,7 +12,7 @@ using namespace std;
 
 #define endl '\n'
 using LL=long long;
-constexpr int N=5e5+10;
+constexpr int N=1e5+10,D=3;
 
 template<typename I,typename L,I mod> struct Modint {
     I v;
@@ -51,51 +51,51 @@ template<typename I,typename L,I mod> struct Modint {
 
     constexpr Modint(L x=0): v((x%=mod)<0?x+mod:x) {}
 }; using Mint=Modint<int,long long,int(1e9)+7>;
-constexpr Mint inv2=Mint(2).inv();
-Mint pre[N],pre2[N];
 
 struct Lazy {
-    int cnt;
-    Mint add,sumi;
+    array<Mint,D> add;
 
     void clear() {
-        cnt=0;
-        add=sumi=0;
+        add={};
     }
 
-    Lazy operator+=(const Lazy &x) {
-        cnt+=x.cnt;
-        add+=x.add;
-        sumi+=x.sumi;
+    Lazy &operator+=(const Lazy &x) {
+        for(int i=0;i<D;i++) add[i]+=x.add[i];
         return *this;
     }
 };
 
 struct Info {
-    int minj,len;
-    Mint sum;
+    int len;
+    Mint sum3;
+    array<Mint,D> sum2,sum1;
 
     void init(int l,int r) {
         if(l!=r) return;
-        minj=l;
         len=r-l+1;
-        sum=0;
+        sum3=r-l+1;
+        fill(sum1.begin(),sum1.end(),r-l+1);
+        fill(sum2.begin(),sum2.end(),r-l+1);
     }
     void init(int l) { init(l,l); }
 
     friend Info operator+(const Info &l,const Info &r) {
         Info res;
-        res.minj=l.minj;
         res.len=l.len+r.len;
-        res.sum=l.sum+r.sum;
+        res.sum3=l.sum3+r.sum3;
+        for(int i=0;i<D;i++) res.sum2[i]=l.sum2[i]+r.sum2[i];
+        for(int i=0;i<D;i++) res.sum1[i]=l.sum1[i]+r.sum1[i];
         return res;
     }
 
-    Info operator+=(const Lazy &x) {
-        int l=minj-1,r=minj+len-1;
-        sum+=x.add*len;
-        sum+=x.cnt*(pre2[r]-pre2[l]+(pre[r]-pre[l])*3)*inv2;
-        sum-=x.sumi*(pre[r]-pre[l]);
+    Info &operator+=(const Lazy &x) {
+        for(int i=0;i<D;i++) {
+            sum1[i]+=len*x.add[i];
+            for(int j=0;j<D;j++) {
+                if(i!=j) sum2[j]+=sum1[3-j-i]*x.add[i];
+                else sum3+=sum2[j]*x.add[i];
+            }
+        }
         return *this;
     }
 
@@ -186,26 +186,30 @@ void solve() {
     int n,m;
     cin>>n>>m;
     sgt.build(1,n);
-    for(int i=1;i<=m;i++) {
-        int q,l,r;
-        cin>>q>>l>>r;
-        if(q==1) {
-            auto get=[](int l) {
-                return Lazy{1,Mint(1LL*l*l-3*l+2)*inv2,l};
-            };
-            sgt.modify(l,r,get(l));
-            if(l+1<=n) sgt.modify(l+1,r,get(l+1));
+    while(m--) {
+        char op;
+        cin>>op;
+        int idx=-1;
+        if(op=='x') idx=0;
+        else if(op=='y') idx=1;
+        else if(op=='z') idx=2;
+
+        if(idx==-1) {
+            int l,r;
+            cin>>l>>r;
+            cout<<sgt.query(l,r).sum3<<endl;
         }
         else {
-            Info res=sgt.query(l,r);
-            cout<<res.sum<<endl;
+            int l,r,v;
+            cin>>l>>r>>v;
+            Lazy laz;
+            laz.add[idx]=v;
+            sgt.modify(l,r,laz);
         }
     }
 }
 
 int main() {
-    for(int i=1;i<N;i++) pre[i]=pre[i-1]+i;
-    for(int i=1;i<N;i++) pre2[i]=pre2[i-1]+1LL*i*i;
     ios::sync_with_stdio(0);
     cin.tie(nullptr);
     solve();

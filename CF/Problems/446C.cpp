@@ -12,7 +12,7 @@ using namespace std;
 
 #define endl '\n'
 using LL=long long;
-constexpr int N=5e5+10;
+constexpr int N=3e5+10;
 
 template<typename I,typename L,I mod> struct Modint {
     I v;
@@ -50,53 +50,85 @@ template<typename I,typename L,I mod> struct Modint {
     friend ostream &operator<<(ostream &os,const Modint &x) { return os<<x.v; }
 
     constexpr Modint(L x=0): v((x%=mod)<0?x+mod:x) {}
-}; using Mint=Modint<int,long long,int(1e9)+7>;
-constexpr Mint inv2=Mint(2).inv();
-Mint pre[N],pre2[N];
+}; using Mint=Modint<int,long long,int(1e9)+9>;
 
-struct Lazy {
-    int cnt;
-    Mint add,sumi;
-
-    void clear() {
-        cnt=0;
-        add=sumi=0;
+template<typename T,int R,int C=R> struct Matrix {
+    array<array<T,C>,R> v;
+    
+    template<int Rr,int Cr> constexpr Matrix<T,R,Cr> 
+    operator*(const Matrix<T,Rr,Cr> &r) const {
+        static_assert(C==Rr,"");
+        array<array<T,Cr>,R> ans;
+        for(int i=0;i<R;i++) {
+            for(int k=0;k<C;k++) {
+                // if(v[i][k]==0) continue;
+                for(int j=0;j<Cr;j++) {
+                    ans[i][j]+=v[i][k]*r[k][j];
+                }
+            }
+        }
+        return ans;
     }
 
-    Lazy operator+=(const Lazy &x) {
-        cnt+=x.cnt;
-        add+=x.add;
-        sumi+=x.sumi;
-        return *this;
+    constexpr Matrix operator+(const Matrix &r) const {
+        array<array<T,C>,R> ans;
+        for(int i=0;i<R;i++)
+            for(int j=0;j<C;j++)
+                ans[i][j]=v[i][j]+r[i][j];
+        return ans;
     }
+
+    constexpr Matrix operator-(const Matrix &r) const {
+        array<array<T,C>,R> ans;
+        for(int i=0;i<R;i++)
+            for(int j=0;j<C;j++)
+                ans[i][j]=v[i][j]-r[i][j];
+        return ans;
+    }
+
+    constexpr Matrix &operator*=(const Matrix<T,C,C> &r) { return *this=*this*r; }
+    constexpr Matrix &operator+=(const Matrix &r) { return *this=*this+r; }
+    constexpr Matrix &operator-=(const Matrix &r) { return *this=*this-r; }
+
+    constexpr Matrix pow(long long k) const {
+        Matrix res(1),x=*this;
+        while(k) { if(k&1) res*=x; k>>=1; x*=x; }
+        return res;
+    }
+
+    constexpr auto &operator[](int idx) { return v[idx]; }
+    constexpr auto &operator[](int idx) const { return v[idx]; }
+
+    constexpr void clear() { v={}; }
+    constexpr void unit(T x=1) {
+        static_assert(R==C,"");
+        clear(); for(int i=0;i<R;i++) v[i][i]=x;
+    }
+
+    constexpr Matrix() { clear(); }
+    constexpr Matrix(T x) { unit(x); }
+    constexpr Matrix(const array<array<T,C>,R> &x): v(x) {}
 };
+constexpr Matrix<Mint,3> one({{{0,1,1},{1,1,1},{0,0,1}}});
+constexpr Matrix<Mint,1,3> f1({0,1,1});
+LL pre[N];
+Matrix<Mint,3> pw[N];
 
 struct Info {
-    int minj,len;
-    Mint sum;
+    int len;
+    Matrix<Mint,1,3> v;
 
     void init(int l,int r) {
         if(l!=r) return;
-        minj=l;
         len=r-l+1;
-        sum=0;
     }
     void init(int l) { init(l,l); }
 
     friend Info operator+(const Info &l,const Info &r) {
         Info res;
-        res.minj=l.minj;
         res.len=l.len+r.len;
-        res.sum=l.sum+r.sum;
+        res.v=l.v*pw[r.len]+r.v;
         return res;
-    }
-
-    Info operator+=(const Lazy &x) {
-        int l=minj-1,r=minj+len-1;
-        sum+=x.add*len;
-        sum+=x.cnt*(pre2[r]-pre2[l]+(pre[r]-pre[l])*3)*inv2;
-        sum-=x.sumi*(pre[r]-pre[l]);
-        return *this;
     }
 
     Info()=default;
@@ -104,48 +136,30 @@ struct Info {
     Info(int l,int r) { init(l,r); }
 };
 
-template<class Info,class Lazy,int size> struct SegmentTree {
+template<class Info,int size> struct SegmentTree {
     #define lch (u<<1)
     #define rch (u<<1|1)
 
     struct Node {
-        bool clean;
         int l,r;
         Info info;
-        Lazy lazy;
         void init(int l,int r) {
-            clean=1;
             this->l=l;
             this->r=r;
             info.init(l, r);
-            lazy.clear();
         }
     };
 
     array<Node, 1<<__lg(size)<<2|1> tr;
+    array<int, size+1> leaf;
 
     void pushup(int u) {
         tr[u].info=tr[lch].info+tr[rch].info;
     }
 
-    void update(Node &ch, const Lazy &x) {
-        ch.clean=0;
-        ch.info+=x;
-        ch.lazy+=x;
-    }
-
-    void pushdn(int u) {
-        if(tr[u].clean) return;
-        update(tr[lch],tr[u].lazy);
-        update(tr[rch],tr[u].lazy);
-        tr[u].clean=1;
-        tr[u].lazy.clear();
-    }
-
     Info query(int u,int l,int r) {
         if(tr[u].l>=l&&tr[u].r<=r) { return tr[u].info; }
         else {
-            pushdn(u);
             int mid=(tr[u].l+tr[u].r)/2;
             if(mid>=l&&mid<r) return query(lch,l,r)+query(rch,l,r);
             else if(mid>=l) return query(lch,l,r);
@@ -154,17 +168,11 @@ template<class Info,class Lazy,int size> struct SegmentTree {
     }
     Info query(int l,int r) { return query(1,l,r); }
 
-    void modify(int u,int l,int r,const Lazy &v) {
-        if(tr[u].l>=l&&tr[u].r<=r) { update(tr[u],v); }
-        else {
-            pushdn(u);
-            int mid=(tr[u].l+tr[u].r)/2;
-            if(mid>=l) modify(lch,l,r,v);
-            if(mid<r) modify(rch,l,r,v);
-            pushup(u);
-        }
+    void modify(int p,const Matrix<Mint,1,3> &v) {
+        int u=leaf[p];
+        tr[u].info.v+=v;
+        while(u>>=1) pushup(u);
     }
-    void modify(int l,int r,const Lazy &v) { modify(1,l,r,v); }
 
     void build(int u,int l,int r) {
         tr[u].init(l,r);
@@ -174,38 +182,48 @@ template<class Info,class Lazy,int size> struct SegmentTree {
             build(rch,mid+1,r);
             pushup(u);
         }
+        else leaf[l]=u;
     }
     void build(int l,int r) { build(1,l,r); }
 
     #undef lch
     #undef rch
 };
-SegmentTree<Info, Lazy, N> sgt;
+SegmentTree<Info, N> sgt;
 
 void solve() {
     int n,m;
     cin>>n>>m;
+    for(int i=1;i<=n;i++) cin>>pre[i],pre[i]+=pre[i-1];
     sgt.build(1,n);
-    for(int i=1;i<=m;i++) {
-        int q,l,r;
-        cin>>q>>l>>r;
-        if(q==1) {
-            auto get=[](int l) {
-                return Lazy{1,Mint(1LL*l*l-3*l+2)*inv2,l};
-            };
-            sgt.modify(l,r,get(l));
-            if(l+1<=n) sgt.modify(l+1,r,get(l+1));
+
+    while(m--) {
+        int op,l,r;
+        cin>>op>>l>>r;
+        if(op==1) {
+            sgt.modify(l, f1);
+            if(r+1<=n) {
+                auto sub=Matrix<Mint,1,3>()-f1*pw[r-l+1];
+                sub[0][2]=sub[0][1];
+                sgt.modify(r+1, sub);
+            }
         }
         else {
-            Info res=sgt.query(l,r);
-            cout<<res.sum<<endl;
+            Mint ans=pre[r]-pre[l-1];
+            auto cal=[&](int x) {
+                if(x<1) return Mint();
+                auto res=sgt.query(1,x).v;
+                return res[0][2];
+            };
+            ans+=cal(r)-cal(l-1);
+            cout<<ans<<endl;
         }
     }
 }
 
 int main() {
-    for(int i=1;i<N;i++) pre[i]=pre[i-1]+i;
-    for(int i=1;i<N;i++) pre2[i]=pre2[i-1]+1LL*i*i;
+    pw[0].unit();
+    for(int i=1;i<N;i++) pw[i]=pw[i-1]*one;
     ios::sync_with_stdio(0);
     cin.tie(nullptr);
     solve();
