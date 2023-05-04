@@ -12,37 +12,93 @@ using namespace std;
 
 #define endl '\n'
 using LL=long long;
+constexpr int N=1e5+10;
 
-struct Trie {
-    constexpr static int A=26,B='a';
-    struct Node {
-        int ch[A];
-        int len[A];
-        int cnt;
+struct GeneralSuffixAutomaton {
+    constexpr static int A=26;
+    constexpr static char B='a';
+    using Arr=array<int, A>;
+    struct Endpos {
+        int link,len;
+        Arr ch;
     };
-    vector<Node> tr;
+    vector<Endpos> edp;
 
-    int new_node() { tr.push_back({}); return tr.size()-1; }
+    int new_edp() { edp.push_back({}); return edp.size()-1; }
 
-    int extend(int u,int x,int len) {
-        if(!tr[u].ch[x-B]) tr[u].ch[x-B]=new_node();
-        tr[tr[u].ch[x-B]].cnt++;
-        return tr[u].ch[x-B];
+    int split(int p,int c,int len) {
+        int q=edp[p].ch[c];
+        if(edp[q].len==len) return q;
+        else {
+            int clone=new_edp();
+            edp[clone]=edp[q];
+            edp[clone].len=len;
+            edp[q].link=clone;
+            for(;p!=-1&&edp[p].ch[c]==q;p=edp[p].link)
+                edp[p].ch[c]=clone;
+            return clone;
+        }
     }
 
-    template<typename T> void insert(const T &s) {
+    void extend(int p,int c) {
+        int cur=edp[p].ch[c];
+        edp[cur].len=edp[p].len+1;
+        for(;p!=-1&&(edp[p].ch[c]==cur||!edp[p].ch[c]);p=edp[p].link)
+            edp[p].ch[c]=cur;
+        if(p!=-1) edp[cur].link=split(p, c, edp[p].len+1);
+    }
+
+    void insert(string &s) {
         int u=0;
-        for(auto x:s) u=extend(u, x);
+        vector<int> p;
+        for(int i=0;i<s.size();i++) {
+            int len=1;
+            int c=s[i]-B;
+            while(u&&s[i]>s[i-len]) {
+                u=p.back();
+                p.pop_back();
+                len++;
+            }
+            while(len--) {
+                p.push_back(u);
+                if(!edp[u].ch[c]) edp[u].ch[c]=new_edp();
+                u=edp[u].ch[c];
+            }
+        }
     }
 
-    void clear() { tr.clear(); new_node(); }
-    Trie() { clear(); }
-    Trie(int size) { tr.reserve(size); clear(); }
-} trie;
+    void build() {
+        queue<int> q;
+        q.push(0);
+        while(q.size()) {
+            int p=q.front();
+            q.pop();
+            for(int c=0;c<A;c++) if(edp[p].ch[c]) 
+                extend(p, c),q.push(edp[p].ch[c]);
+        }
+    }
+
+    LL count() {
+        LL res=0;
+        for(int i=1;i<size();i++) {
+            res+=edp[i].len-edp[edp[i].link].len;
+        }
+        return res;
+    }
+
+    int size() { return edp.size(); }
+    void clear() { edp.clear(),edp.push_back({-1}); }
+    
+    GeneralSuffixAutomaton(int sz=0) { edp.reserve(sz),clear(); }
+} sam(N*2*sam.B);
 
 void solve() {
     string s;
     cin>>s;
+    reverse(s.begin(),s.end());
+    sam.insert(s);
+    sam.build();
+    cout<<sam.count();
 }
 
 int main() {
