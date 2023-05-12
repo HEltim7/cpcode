@@ -1,90 +1,122 @@
-#include <vector>
-#include <iostream>
 #include <algorithm>
+#include <array>
 #include <cassert>
+#include <iostream>
+#include <map>
+#include <numeric>
+#include <queue>
+#include <set>
+#include <tuple>
+#include <vector>
 using namespace std;
 
 #define endl '\n'
 using LL=long long;
-constexpr int N=6e5+10;
-constexpr int K=__lg(10000000)+1;
-int root[N];
 
-struct PersistentTrie {
-
-    constexpr static int MAX_SIZE=N*30;
-    constexpr static int ALPHABET=2;
-    
+template<typename I> struct PersistentBinaryTrie {
+    constexpr static int H=sizeof(I)*8-1;
     struct Node {
-        int ch[ALPHABET];
-        int id;
-    } tr[MAX_SIZE];
-    int idx;
+        int ch[2];
+        int cnt;
+    };
+    vector<Node> tr;
+    vector<int> root;
+    
+    int ver() { return root.size()-1; }
+
+    int new_root() {
+        root.push_back({});
+        return ver();
+    }
 
     int new_node() {
-        assert(idx<MAX_SIZE);
-        return ++idx;
+        tr.push_back({});
+        return tr.size()-1;
     }
 
-    template<typename T> void insert(T &&s,int u,int v) {
-        int id=u;
-        root[u]=new_node();
-        u=root[u],v=root[v];
+    void insert(int &rt,int v,int val) {
+        int u=rt=new_node();
         tr[u]=tr[v];
-        tr[u].id=id;
-        for(auto x:s) {
-            tr[u].ch[x]=new_node();
-            tr[tr[u].ch[x]]=tr[tr[v].ch[x]];
-            tr[tr[u].ch[x]].id=id;
-            u=tr[u].ch[x];
+        for(int i=H;i>=0;i--) {
+            bool x=val>>i&1;
+            u=tr[u].ch[x]=new_node();
             v=tr[v].ch[x];
+            tr[u]=tr[v];
+            tr[u].cnt++;
         }
     }
+    int insert(int val) {
+        new_root();
+        insert(root[ver()],root[ver()-1],val);
+        return ver();
+    }
 
-    template<typename T> int query(T &&s,int u, int id) {
-        int res=0;
+    I xor_max(int u,int val) {
         u=root[u];
-        for(auto x:s) {
-            if(tr[u].ch[!x]&&tr[tr[u].ch[!x]].id>=id) u=tr[u].ch[!x],res=res<<1|1;
-            else u=tr[u].ch[x],res=res<<1;
+        I res{};
+        for(int i=H;i>=0;i--) {
+            bool x=val>>i&1^1;
+            if(tr[tr[u].ch[x]].cnt) {
+                res|=1<<i;
+                u=tr[u].ch[x];
+            }
+            else u=tr[u].ch[x^1];
         }
         return res;
     }
 
-} trie;
+    I range_xor_max(int u,int v,int val) {
+        u=root[u],v=root[v];
+        I res{};
+        for(int i=H;i>=0;i--) {
+            bool x=val>>i&1^1;
+            if(tr[tr[u].ch[x]].cnt-tr[tr[v].ch[x]].cnt) {
+                res|=1<<i;
+                u=tr[u].ch[x];
+                v=tr[v].ch[x];
+            }
+            else u=tr[u].ch[x^1],v=tr[v].ch[x^1];
+        }
+        return res;
+    }
+
+    void clear() {
+        tr.clear();
+        new_root();
+        new_node();
+    }
+
+    PersistentBinaryTrie(int size=0) {
+        tr.reserve(size*(H+1));
+        clear();
+    }
+};
+
+constexpr int N=6e5+10;
+PersistentBinaryTrie<int> trie(N);
 
 void solve() {
-    auto get=[](int x) {
-        vector<int> res;
-        while(x) res.push_back(x&1),x>>=1;
-        while(res.size()<K) res.push_back(0);
-        reverse(res.begin(),res.end());
-        return res;
-    };
-
-    int n,m,sum=0;
-    cin>>n>>m;
-    trie.insert(get(0), 0, 0);
+    int n,q,pre=0;
+    cin>>n>>q;
+    trie.insert(pre);
     for(int i=1;i<=n;i++) {
         int in;
         cin>>in;
-        sum^=in;
-        trie.insert(get(sum), i, i-1);
+        trie.insert(pre^=in);
     }
-    while(m--) {
+
+    while(q--) {
         char op;
         cin>>op;
         if(op=='A') {
-            int x;
-            cin>>x;
-            sum^=x;
-            trie.insert(get(sum), n+1, n);
-            n++;
+            int in;
+            cin>>in;
+            trie.insert(pre^=in);
         }
         else {
             int l,r,x;
             cin>>l>>r>>x;
-            cout<<trie.query(get(sum^x), r-1, l-1)<<endl;
+            cout<<trie.range_xor_max(r, l-1, pre^x)<<endl;
         }
     }
 }

@@ -1,58 +1,95 @@
-#include<vector>
-#include<iostream>
-#include<algorithm>
+#include <algorithm>
+#include <array>
+#include <cassert>
+#include <iostream>
+#include <map>
+#include <numeric>
+#include <queue>
+#include <set>
+#include <tuple>
+#include <vector>
 using namespace std;
 
 #define endl '\n'
 using LL=long long;
-const int N=1e5+10,H=30;
-int val[N];
+
+template<typename I> struct BinaryTrie {
+    constexpr static int H=sizeof(I)*8-1;
+    struct Node {
+        int ch[2];
+        int cnt;
+    };
+    vector<Node> tr;
+
+    int new_node() { tr.push_back({}); return tr.size()-1; }
+
+    void insert(int v) {
+        for(int i=H,u=0;i>=0;i--) {
+            bool x=v>>i&1;
+            if(!tr[u].ch[x]) tr[u].ch[x]=new_node();
+            u=tr[u].ch[x];
+            tr[u].cnt++;
+        }
+    }
+
+    void erase(int v) {
+        for(int i=H,u=0;i>=0;i--) {
+            bool x=v>>i&1;
+            u=tr[u].ch[x];
+            tr[u].cnt--;
+        }
+    }
+
+    I xor_max(int v) {
+        I res{};
+        for(int i=H,u=0;i>=0;i--) {
+            bool x=v>>i&1^1;
+            if(tr[tr[u].ch[x]].cnt) {
+                res|=1<<i;
+                u=tr[u].ch[x];
+            }
+            else u=tr[u].ch[x^1];
+        }
+        return res;
+    }
+
+    void clear() { tr.clear(); new_node(); }
+    BinaryTrie() { clear(); }
+    BinaryTrie(int size) { tr.reserve(size); clear(); }
+};
+
+BinaryTrie<int> trie;
+
+constexpr int N=1e5+10;
 vector<pair<int,int>> adj[N];
+int ans;
 
-struct NODE {
-    int ch[2];
-} tr[32*N];
-int idx;
-
-int getxor(int x,int val,int bit){
-    if(bit<0) return 0;
-    int s=(val>>bit)&1;
-    if(tr[x].ch[s^1]) s^=1;
-    return (s<<bit)+getxor(tr[x].ch[s],val,bit-1); 
-}
-
-void build(int x,int val,int bit){
-    if(bit<0) return;
-    else{
-        int s=(val>>bit)&1;
-        if(!tr[x].ch[s]) tr[x].ch[s]=++idx;
-        build(tr[x].ch[s],val,bit-1);
+void dfs(int u,int fa,int val) {
+    ans=max(ans,trie.xor_max(val));
+    trie.insert(val);
+    for(auto [v,w]:adj[u]) {
+        if(v!=fa) {
+            dfs(v, u, val^w);
+        }
     }
 }
 
-void dfs(int x,int fa,int v){
-    val[x]=v;
-    build(0,v,H);
-    for(auto [s,d]:adj[x])
-        if(s!=fa) dfs(s,x,v^d);
+void solve() {
+    int n;
+    cin>>n;
+    for(int i=1;i<n;i++) {
+        int u,v,w;
+        cin>>u>>v>>w;
+        adj[u].emplace_back(v,w);
+        adj[v].emplace_back(u,w);
+    }
+    dfs(1, 0, 0);
+    cout<<ans<<endl;
 }
 
 int main() {
     ios::sync_with_stdio(0);
     cin.tie(nullptr);
-    int n;
-    cin>>n;
-    for(int i=1;i<n;i++){
-        int a,b,c;
-        cin>>a>>b>>c;
-        adj[a].emplace_back(b,c);
-        adj[b].emplace_back(a,c);
-    }
-    dfs(1,-1,0);
-    
-    int ans=0;
-    for(int i=1;i<=n;i++)
-        ans=max(ans,val[i]^getxor(0,val[i],H));
-    cout<<ans;
+    solve();
     return 0;
 }
