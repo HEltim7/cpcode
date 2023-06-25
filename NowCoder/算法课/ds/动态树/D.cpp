@@ -11,8 +11,16 @@
 #include <vector>
 using namespace std;
 
+// #define ONLINE_JUDGE
+#ifndef ONLINE_JUDGE
+#include <heltim7/debug>
+#else
+#define debug(...) 7
+#endif
+
 #define endl '\n'
 using LL=long long;
+constexpr int N=5e4+10,M=1e5+10;
 
 template
 <class Info,class Tag,int MAX_SIZE,bool CHECK_LINK=0,bool CHECK_CUT=0>
@@ -105,14 +113,14 @@ struct LinkCutTree {
 
     bool link(int u,int v) {
         make_root(u);
-        if(CHECK_LINK&&find_root(v)==u) return 0;
+        if(CHECK_LINK&&find_root(v)==u) return assert(0),0;
         tr[u].p=v;
         return 1;
     }
 
     bool cut(int u,int v) {
         make_root(u);
-        if(CHECK_CUT&&!(find_root(v)==u&&rch==v&&!tr[v].ch[0])) return 0;
+        if(CHECK_CUT&&!(find_root(v)==u&&rch==v&&!tr[v].ch[0])) return assert(0),0;
         else access(v),splay(u);
         rch=tr[v].p=0;
         pushup(u);
@@ -138,6 +146,23 @@ struct LinkCutTree {
         return tr[u].info;
     }
 
+    string dump_impl(int u) {
+        string res;
+        if(lch) res+=dump_impl(lch);
+        res+=to_string(u)+" ";
+        debug(u,lch,rch);
+        if(rch) res+=dump_impl(rch);
+        return res;
+    }
+
+    void dump() {
+        for(int u=1;u<MAX_SIZE;u++) {
+            if(is_root(u)&&(lch||rch)) {
+                debug(u,dump_impl(u));
+            }
+        }
+    }
+
     #undef lch
     #undef rch
     #undef wch
@@ -155,12 +180,14 @@ struct Tag {
 };
 
 struct Info {
-    int val;
-    int xsum;
+    int val=0,eid=-1;
+    int maxv=0,maxid=-1;
 
     //* lch+parent+rch
     void pushup(const Info &l,const Info &r) {
-        xsum=l.xsum^r.xsum^val;
+        vector v({pair(l.maxv,l.maxid),pair(r.maxv,r.maxid),pair(val,eid)});
+        sort(v.begin(),v.end());
+        tie(maxv,maxid)=v.back();
     }
 
     void update(const Tag &x) {
@@ -168,29 +195,44 @@ struct Info {
     }
 };
 
-LinkCutTree<Info,Tag,int(1e5)+10,1,1> lct;
+LinkCutTree<Info,Tag,N+M> lct;
 
 void solve() {
-    int n,q;
-    cin>>n>>q;
-    for(int i=1;i<=n;i++) {
-        int in;
-        cin>>in;
-        lct.info(i)={in,in};
+    int n,m;
+    cin>>n>>m;
+    vector<tuple<int,int,int,int,int>> edg(m);
+    for(auto &[a,b,u,v,w]:edg) cin>>u>>v>>a>>b;
+    sort(edg.begin(),edg.end());
+
+    for(int i=1;i<=m;i++) {
+        auto &[a,b,u,v,w]=edg[i-1];
+        w=i+n;
+        lct.info(w)={b,i-1,b,i-1};
     }
-    while(q--) {
-        int op,u,v;
-        cin>>op>>u>>v;
-        if(op==0) cout<<lct.info(lct.split(u, v)).xsum<<endl;
-        else if(op==1) lct.link(u, v);
-        else if(op==2) lct.cut(u, v);
-        else {
-            lct.splay(u);
-            lct.info(u).xsum^=lct.info(u).val;
-            lct.info(u).val=v;
-            lct.info(u).xsum^=v;
+
+    constexpr int INF=1e9;
+    int ans=INF;
+
+    for(auto [a,b,u,v,w]:edg) {
+        if(lct.same(u,v)) {
+            int rt=lct.split(u, v);
+            int id=lct.info(rt).maxid;
+            if(lct.info(rt).maxv>b) {
+                auto [_,__,x,y,z]=edg[id];
+                lct.cut(x, z);
+                lct.cut(y, z);
+                lct.link(u, w);
+                lct.link(v, w);
+            }
         }
+        else {
+            lct.link(u, w);
+            lct.link(v, w);
+        }
+        if(lct.same(1, n)) ans=min(ans,lct.info(lct.split(1, n)).maxv+a);
     }
+
+    cout<<(ans==INF?-1:ans)<<endl;
 }
 
 int main() {

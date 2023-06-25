@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
-#include <cstring>
 #include <iostream>
 #include <map>
 #include <numeric>
@@ -14,8 +13,7 @@ using namespace std;
 #define endl '\n'
 using LL=long long;
 
-template
-<class Info,class Tag,int MAX_SIZE,bool CHECK_LINK=0,bool CHECK_CUT=0>
+template<int MAX_SIZE,bool CHECK_LINK=0,bool CHECK_CUT=0>
 struct LinkCutTree {
     #define lch tr[u].ch[0]
     #define rch tr[u].ch[1]
@@ -24,22 +22,16 @@ struct LinkCutTree {
     struct Node {
         int ch[2],p;
         bool rev;
-        Info info;
-        Tag tag;
-        void update(const Tag &x) {
-            info.update(x);
-            tag.update(x);
-        }
-    };
-    array<Node, MAX_SIZE> tr;
-    array<int, MAX_SIZE> stk;
+        
+    } tr[MAX_SIZE];
+    int stk[MAX_SIZE];
 
     bool is_root(int u) {
         return tr[tr[u].p].ch[0]!=u&&tr[tr[u].p].ch[1]!=u;
     }
 
     void pushup(int u) {
-        tr[u].info.pushup(tr[lch].info,tr[rch].info);
+        
     }
 
     void pushdn(int u) {
@@ -48,9 +40,6 @@ struct LinkCutTree {
             tr[lch].rev^=1,tr[rch].rev^=1;
             tr[u].rev=0;
         }
-        if(lch) tr[lch].update(tr[u].tag);
-        if(rch) tr[rch].update(tr[u].tag);
-        tr[u].tag.clear();
     }
 
     void rotate(int x) {
@@ -77,6 +66,16 @@ struct LinkCutTree {
         return v;
     }
 
+    int lca(int u,int v) {
+        access(u);
+        return access(v);
+    }
+
+    int lca(int rt,int u,int v) {
+        make_root(rt);
+        return lca(u,v);
+    }
+
     void make_root(int u) {
         access(u);
         splay(u);
@@ -98,11 +97,6 @@ struct LinkCutTree {
         return u;
     }
 
-    bool same(int u,int v) {
-        make_root(u);
-        return find_root(v)==u;
-    }
-
     bool link(int u,int v) {
         make_root(u);
         if(CHECK_LINK&&find_root(v)==u) return 0;
@@ -119,77 +113,24 @@ struct LinkCutTree {
         return 1;
     }
 
-    int lca(int u,int v) {
-        access(u);
-        return access(v);
-    }
-
-    int lca(int rt,int u,int v) {
-        make_root(rt);
-        return lca(u,v);
-    }
-
-    void modify(int u,const Tag &x) {
-        if(!is_root(u)) splay(u);
-        tr[u].update(x);
-    }
-
-    Info &info(int u) {
-        return tr[u].info;
-    }
-
     #undef lch
     #undef rch
     #undef wch
-};
-
-struct Tag {
-
-    void update(const Tag &x) {
-        
-    }
-
-    void clear() {
-        
-    }
-};
-
-struct Info {
-    int val;
-    int xsum;
-
-    //* lch+parent+rch
-    void pushup(const Info &l,const Info &r) {
-        xsum=l.xsum^r.xsum^val;
-    }
-
-    void update(const Tag &x) {
-
-    }
-};
-
-LinkCutTree<Info,Tag,int(1e5)+10,1,1> lct;
+}; LinkCutTree<int(1e4)+10,1,1> lct;
 
 void solve() {
     int n,q;
     cin>>n>>q;
-    for(int i=1;i<=n;i++) {
-        int in;
-        cin>>in;
-        lct.info(i)={in,in};
-    }
     while(q--) {
-        int op,u,v;
+        string op;
+        int u,v;
         cin>>op>>u>>v;
-        if(op==0) cout<<lct.info(lct.split(u, v)).xsum<<endl;
-        else if(op==1) lct.link(u, v);
-        else if(op==2) lct.cut(u, v);
-        else {
-            lct.splay(u);
-            lct.info(u).xsum^=lct.info(u).val;
-            lct.info(u).val=v;
-            lct.info(u).xsum^=v;
+        if(op.front()=='Q') {
+            if(lct.find_root(u)==lct.find_root(v)) cout<<"Yes"<<endl;
+            else cout<<"No"<<endl;
         }
+        else if(op.front()=='C') lct.link(u, v);
+        else lct.cut(u, v);
     }
 }
 

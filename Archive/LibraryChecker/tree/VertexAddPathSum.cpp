@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
-#include <cstring>
 #include <iostream>
 #include <map>
 #include <numeric>
@@ -10,6 +9,13 @@
 #include <tuple>
 #include <vector>
 using namespace std;
+
+#define ONLINE_JUDGE
+#ifndef ONLINE_JUDGE
+#include <heltim7/debug>
+#else
+#define debug(...) 7
+#endif
 
 #define endl '\n'
 using LL=long long;
@@ -138,6 +144,23 @@ struct LinkCutTree {
         return tr[u].info;
     }
 
+    string dump_impl(int u) {
+        string res;
+        if(lch) res+=dump_impl(lch);
+        res+=to_string(u)+" ";
+        debug(u,lch,rch);
+        if(rch) res+=dump_impl(rch);
+        return res;
+    }
+
+    void dump() {
+        for(int u=1;u<MAX_SIZE;u++) {
+            if(is_root(u)&&(lch||rch)) {
+                debug(u,dump_impl(u));
+            }
+        }
+    }
+
     #undef lch
     #undef rch
     #undef wch
@@ -155,12 +178,12 @@ struct Tag {
 };
 
 struct Info {
-    int val;
-    int xsum;
+    LL val=0;
+    LL sum=0;
 
     //* lch+parent+rch
     void pushup(const Info &l,const Info &r) {
-        xsum=l.xsum^r.xsum^val;
+        sum=l.sum+r.sum+val;
     }
 
     void update(const Tag &x) {
@@ -168,7 +191,8 @@ struct Info {
     }
 };
 
-LinkCutTree<Info,Tag,int(1e5)+10,1,1> lct;
+constexpr int N=2e5+10;
+LinkCutTree<Info,Tag,N> lct;
 
 void solve() {
     int n,q;
@@ -176,19 +200,34 @@ void solve() {
     for(int i=1;i<=n;i++) {
         int in;
         cin>>in;
-        lct.info(i)={in,in};
+        lct.info(i).val=lct.info(i).sum=in;
     }
+    for(int i=1;i<n;i++) {
+        int u,v;
+        cin>>u>>v;
+        lct.link(u+1, v+1);
+    }
+
     while(q--) {
-        int op,u,v;
-        cin>>op>>u>>v;
-        if(op==0) cout<<lct.info(lct.split(u, v)).xsum<<endl;
-        else if(op==1) lct.link(u, v);
-        else if(op==2) lct.cut(u, v);
+        int op;
+        cin>>op;
+        if(op==0) {
+            int u,v,w,x;
+            cin>>u>>v>>w>>x;
+            lct.cut(u+1, v+1);
+            lct.link(w+1, x+1);
+        }
+        else if(op==1) {
+            int p,x;
+            cin>>p>>x;
+            lct.splay(p+1);
+            lct.info(p+1).sum+=x;
+            lct.info(p+1).val+=x;
+        }
         else {
-            lct.splay(u);
-            lct.info(u).xsum^=lct.info(u).val;
-            lct.info(u).val=v;
-            lct.info(u).xsum^=v;
+            int u,v;
+            cin>>u>>v;
+            cout<<lct.info(lct.split(u+1, v+1)).sum<<endl;
         }
     }
 }

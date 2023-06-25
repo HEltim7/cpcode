@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
-#include <cstring>
 #include <iostream>
 #include <map>
 #include <numeric>
@@ -98,11 +97,6 @@ struct LinkCutTree {
         return u;
     }
 
-    bool same(int u,int v) {
-        make_root(u);
-        return find_root(v)==u;
-    }
-
     bool link(int u,int v) {
         make_root(u);
         if(CHECK_LINK&&find_root(v)==u) return 0;
@@ -134,14 +128,14 @@ struct LinkCutTree {
         tr[u].update(x);
     }
 
-    Info &info(int u) {
+    Info query(int u) {
         return tr[u].info;
     }
 
     #undef lch
     #undef rch
     #undef wch
-};
+}; 
 
 struct Tag {
 
@@ -155,12 +149,10 @@ struct Tag {
 };
 
 struct Info {
-    int val;
-    int xsum;
 
     //* lch+parent+rch
     void pushup(const Info &l,const Info &r) {
-        xsum=l.xsum^r.xsum^val;
+
     }
 
     void update(const Tag &x) {
@@ -168,28 +160,21 @@ struct Info {
     }
 };
 
-LinkCutTree<Info,Tag,int(1e5)+10,1,1> lct;
+LinkCutTree<Info,Tag,int(5e5)+10> lct;
 
 void solve() {
     int n,q;
     cin>>n>>q;
-    for(int i=1;i<=n;i++) {
-        int in;
-        cin>>in;
-        lct.info(i)={in,in};
+    for(int i=2;i<=n;i++) {
+        int p;
+        cin>>p;
+        lct.link(i, p+1);
     }
+
     while(q--) {
-        int op,u,v;
-        cin>>op>>u>>v;
-        if(op==0) cout<<lct.info(lct.split(u, v)).xsum<<endl;
-        else if(op==1) lct.link(u, v);
-        else if(op==2) lct.cut(u, v);
-        else {
-            lct.splay(u);
-            lct.info(u).xsum^=lct.info(u).val;
-            lct.info(u).val=v;
-            lct.info(u).xsum^=v;
-        }
+        int u,v;
+        cin>>u>>v;
+        cout<<lct.lca(u+1,v+1)-1<<endl;
     }
 }
 

@@ -155,12 +155,10 @@ struct Tag {
 };
 
 struct Info {
-    int val;
-    int xsum;
 
     //* lch+parent+rch
     void pushup(const Info &l,const Info &r) {
-        xsum=l.xsum^r.xsum^val;
+        
     }
 
     void update(const Tag &x) {
@@ -168,29 +166,10 @@ struct Info {
     }
 };
 
-LinkCutTree<Info,Tag,int(1e5)+10,1,1> lct;
+LinkCutTree<Info,Tag,int(1e5)+10> lct;
 
 void solve() {
-    int n,q;
-    cin>>n>>q;
-    for(int i=1;i<=n;i++) {
-        int in;
-        cin>>in;
-        lct.info(i)={in,in};
-    }
-    while(q--) {
-        int op,u,v;
-        cin>>op>>u>>v;
-        if(op==0) cout<<lct.info(lct.split(u, v)).xsum<<endl;
-        else if(op==1) lct.link(u, v);
-        else if(op==2) lct.cut(u, v);
-        else {
-            lct.splay(u);
-            lct.info(u).xsum^=lct.info(u).val;
-            lct.info(u).val=v;
-            lct.info(u).xsum^=v;
-        }
-    }
+    
 }
 
 int main() {

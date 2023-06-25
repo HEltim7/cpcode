@@ -13,6 +13,7 @@ using namespace std;
 
 #define endl '\n'
 using LL=long long;
+constexpr int N=2e5+10;
 
 template
 <class Info,class Tag,int MAX_SIZE,bool CHECK_LINK=0,bool CHECK_CUT=0>
@@ -155,12 +156,11 @@ struct Tag {
 };
 
 struct Info {
-    int val;
-    int xsum;
+    int sz=0;
 
     //* lch+parent+rch
     void pushup(const Info &l,const Info &r) {
-        xsum=l.xsum^r.xsum^val;
+        sz=l.sz+r.sz+1;
     }
 
     void update(const Tag &x) {
@@ -168,27 +168,40 @@ struct Info {
     }
 };
 
-LinkCutTree<Info,Tag,int(1e5)+10,1,1> lct;
+LinkCutTree<Info,Tag,N> lct;
+
+int link_to[N];
 
 void solve() {
-    int n,q;
-    cin>>n>>q;
+    int n;
+    cin>>n;
     for(int i=1;i<=n;i++) {
         int in;
         cin>>in;
-        lct.info(i)={in,in};
+        lct.info(i).sz=1;
+        link_to[i]=min(n+1,i+in);
+        lct.link(i, link_to[i]);
     }
+    
+
+    int q;
+    cin>>q;
     while(q--) {
-        int op,u,v;
-        cin>>op>>u>>v;
-        if(op==0) cout<<lct.info(lct.split(u, v)).xsum<<endl;
-        else if(op==1) lct.link(u, v);
-        else if(op==2) lct.cut(u, v);
+        int op;
+        cin>>op;
+        if(op==1) {
+            int idx;
+            cin>>idx;
+            idx++;
+            cout<<lct.info(lct.split(idx,n+1)).sz-1<<endl;
+        }
         else {
-            lct.splay(u);
-            lct.info(u).xsum^=lct.info(u).val;
-            lct.info(u).val=v;
-            lct.info(u).xsum^=v;
+            int idx,k;
+            cin>>idx>>k;
+            idx++;
+            lct.cut(idx, link_to[idx]);
+            link_to[idx]=min(n+1,idx+k);
+            lct.link(idx, link_to[idx]);
         }
     }
 }
