@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <cstring>
 #include <iostream>
 #include <map>
 #include <numeric>
@@ -71,8 +72,12 @@ struct LinkCutTree {
 
     int access(int u) {
         int v=0;
-        for(;u;v=u,u=tr[u].p)
-            splay(u),rch=v,pushup(u);
+        for(;u;v=u,u=tr[u].p) {
+            splay(u);
+            if(rch) tr[u].info.add(info(rch));
+            if(v) tr[u].info.sub(info(v));
+            rch=v,pushup(u);
+        }
         return v;
     }
 
@@ -102,10 +107,13 @@ struct LinkCutTree {
         return find_root(v)==u;
     }
 
-    bool link(int u,int v) {
+    bool link(int p,int u) {
         make_root(u);
-        if(CHECK_LINK&&find_root(v)==u) return 0;
-        tr[u].p=v;
+        if(CHECK_LINK&&find_root(p)==u) return 0;
+        make_root(p);
+        tr[p].info.add(info(u));
+        tr[u].p=p;
+        pushup(p);
         return 1;
     }
 
@@ -143,43 +151,85 @@ struct LinkCutTree {
 };
 
 struct Tag {
+    LL add=0;
 
     void update(const Tag &x) {
-        
+        add+=x.add;
     }
 
     void clear() {
-        
+        add=0;
     }
 };
 
 struct Info {
+    int sz=0,vsz=0;
+    LL val=0;
+    LL sum=0,vsum=0;
 
     //* lch+parent+rch
     void pushup(const Info &l,const Info &r) {
-        
+        sz=l.sz+r.sz+vsz+1;
+        sum=l.sum+r.sum+vsum+val;
     }
 
     void update(const Tag &x) {
+        val+=x.add;
+        sum+=x.add*sz;
+    }
 
+    void add(const Info &x) {
+        vsz+=x.sz;
+        vsum+=x.sum;
+    }
+
+    void sub(const Info &x) {
+        vsz-=x.sz;
+        vsum-=x.sum;
     }
 };
 
-LinkCutTree<Info,Tag,int(1e5)+10> lct;
+LinkCutTree<Info,Tag,int(2e5)+10> lct;
 
+// 暂时搁置，懒标记无法正确pushdn到虚儿子
 void solve() {
     int n,q;
     cin>>n>>q;
-    while(q--) {
-        string op;
+    for(int i=1;i<=n;i++) {
+        int in;
+        cin>>in;
+        lct.info(i)={1,0,in,in,0};
+    }
+
+    for(int i=1;i<n;i++) {
         int u,v;
-        cin>>op>>u>>v;
-        if(op.front()=='Q') {
-            if(lct.same(u,v)) cout<<"Yes"<<endl;
-            else cout<<"No"<<endl;
+        cin>>u>>v;
+        lct.link(u+1, v+1);
+    }
+
+    while(q--) {
+        int op;
+        cin>>op;
+        if(op==0) {
+            int u,v,w,x;
+            cin>>u>>v>>w>>x;
+            lct.cut(u+1, v+1);
+            lct.link(w+1, x+1);
         }
-        else if(op.front()=='C') lct.link(u, v);
-        else lct.cut(u, v);
+        else if(op==1) {
+            int v,p,x;
+            cin>>v>>p>>x;
+            lct.cut(v+1, p+1);
+            lct.modify(v+1, Tag{x});
+            lct.link(v+1, p+1);
+        }
+        else {
+            int v,p;
+            cin>>v>>p;
+            lct.cut(v+1, p+1);
+            cout<<lct.info(v+1).sum<<endl;
+            lct.link(v+1, p+1);
+        }
     }
 }
 

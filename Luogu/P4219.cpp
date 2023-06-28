@@ -11,6 +11,13 @@
 #include <vector>
 using namespace std;
 
+// #define ONLINE_JUDGE
+#ifndef ONLINE_JUDGE
+#include <heltim7/debug>
+#else
+#define debug(...) 7
+#endif
+
 #define endl '\n'
 using LL=long long;
 
@@ -72,8 +79,12 @@ struct LinkCutTree {
 
     int access(int u) {
         int v=0;
-        for(;u;v=u,u=tr[u].p)
-            splay(u),rch=v,pushup(u);
+        for(;u;v=u,u=tr[u].p) {
+            splay(u);
+            if(rch) tr[u].info.add(info(rch));
+            if(v) tr[u].info.sub(info(v));
+            rch=v,pushup(u);
+        }
         return v;
     }
 
@@ -103,10 +114,12 @@ struct LinkCutTree {
         return find_root(v)==u;
     }
 
-    bool link(int u,int v) {
+    bool link(int p,int u) {
         make_root(u);
-        if(CHECK_LINK&&find_root(v)==u) return 0;
-        tr[u].p=v;
+        if(CHECK_LINK&&find_root(p)==u) return 0;
+        make_root(p);
+        tr[p].info.add(info(u));
+        tr[u].p=p;
         return 1;
     }
 
@@ -155,21 +168,45 @@ struct Tag {
 };
 
 struct Info {
+    int sz=0,vsz=0;
 
     //* lch+parent+rch
     void pushup(const Info &l,const Info &r) {
-        
+        sz=l.sz+r.sz+vsz+1;
     }
 
     void update(const Tag &x) {
 
+    }
+
+    void add(const Info &x) {
+        vsz+=x.sz;
+    }
+
+    void sub(const Info &x) {
+        vsz-=x.sz;
     }
 };
 
 LinkCutTree<Info,Tag,int(1e5)+10> lct;
 
 void solve() {
-    
+    int n,q;
+    cin>>n>>q;
+    for(int i=1;i<=n;i++) lct.info(i).sz=1;
+    while(q--) {
+        char op;
+        int u,v;
+        cin>>op>>u>>v;
+        if(op=='A') lct.link(u, v);
+        else {
+            lct.cut(u, v);
+            int x=lct.info(u).sz;
+            int y=lct.info(v).sz;
+            cout<<1LL*x*y<<endl;
+            lct.link(u, v);
+        }
+    }
 }
 
 int main() {

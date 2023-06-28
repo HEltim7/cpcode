@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <cstring>
 #include <iostream>
 #include <map>
 #include <numeric>
@@ -12,9 +13,10 @@ using namespace std;
 
 #define endl '\n'
 using LL=long long;
+constexpr int N=5e4+10,INF=1e9;
 
-template
-<class Info,class Tag,int MAX_SIZE,bool CHECK_LINK=0,bool CHECK_CUT=0>
+template<class Info,class Tag,int MAX_SIZE,
+         bool CHECK_LINK = 0,bool CHECK_CUT = 0,bool ASSERT = 0>
 struct LinkCutTree {
     #define lch tr[u].ch[0]
     #define rch tr[u].ch[1]
@@ -41,10 +43,16 @@ struct LinkCutTree {
         tr[u].info.pushup(tr[lch].info,tr[rch].info);
     }
 
+    void pushrev(int u) {
+        tr[u].info.reverse();
+        swap(lch,rch);
+        tr[u].rev^=1;
+    }
+
     void pushdn(int u) {
         if(tr[u].rev) {
-            swap(lch,rch);
-            tr[lch].rev^=1,tr[rch].rev^=1;
+            if(lch) pushrev(lch);
+            if(rch) pushrev(rch);
             tr[u].rev=0;
         }
         if(lch) tr[lch].update(tr[u].tag);
@@ -79,7 +87,7 @@ struct LinkCutTree {
     void make_root(int u) {
         access(u);
         splay(u);
-        tr[u].rev^=1;
+        pushrev(u);
     }
 
     int split(int u,int v) {
@@ -104,14 +112,16 @@ struct LinkCutTree {
 
     bool link(int u,int v) {
         make_root(u);
-        if(CHECK_LINK&&find_root(v)==u) return 0;
+        if(CHECK_LINK&&find_root(v)==u)
+            return assert(!ASSERT),0;
         tr[u].p=v;
         return 1;
     }
 
     bool cut(int u,int v) {
         make_root(u);
-        if(CHECK_CUT&&!(find_root(v)==u&&rch==v&&!tr[v].ch[0])) return 0;
+        if(CHECK_CUT&&!(find_root(v)==u&&rch==v&&!tr[v].ch[0]))
+            return assert(!ASSERT),0;
         else access(v),splay(u);
         rch=tr[v].p=0;
         pushup(u);
@@ -143,43 +153,63 @@ struct LinkCutTree {
 };
 
 struct Tag {
+    int add=0;
 
     void update(const Tag &x) {
-        
+        add+=x.add;
     }
 
     void clear() {
-        
+        add=0;
     }
 };
 
 struct Info {
+    int val=0,minn=INF,maxx=0,lmax=0,rmax=0;
 
     //* lch+parent+rch
     void pushup(const Info &l,const Info &r) {
-        
+        minn=min({l.minn,r.minn,val});
+        maxx=max({l.maxx,r.maxx,val});
+        lmax=max({l.lmax,r.lmax,max(l.maxx,val)-min(r.minn,val)});
+        rmax=max({l.rmax,r.rmax,max(r.maxx,val)-min(l.minn,val)});
     }
 
     void update(const Tag &x) {
+        val+=x.add;
+        minn+=x.add;
+        maxx+=x.add;
+    }
 
+    void reverse() {
+        swap(lmax,rmax);
     }
 };
 
-LinkCutTree<Info,Tag,int(1e5)+10> lct;
+LinkCutTree<Info,Tag,N> lct;
 
 void solve() {
     int n,q;
-    cin>>n>>q;
-    while(q--) {
-        string op;
+    cin>>n;
+    for(int i=1;i<=n;i++) {
+        int in;
+        cin>>in;
+        lct.info(i)={in,in,in,0,0};
+    }
+
+    for(int i=1;i<n;i++) {
         int u,v;
-        cin>>op>>u>>v;
-        if(op.front()=='Q') {
-            if(lct.same(u,v)) cout<<"Yes"<<endl;
-            else cout<<"No"<<endl;
-        }
-        else if(op.front()=='C') lct.link(u, v);
-        else lct.cut(u, v);
+        cin>>u>>v;
+        lct.link(u,v);
+    }
+
+    cin>>q;
+    while(q--) {
+        int u,v,w;
+        cin>>u>>v>>w;
+        int rt=lct.split(v, u);
+        cout<<lct.info(rt).lmax<<endl;
+        lct.modify(rt, Tag{w});
     }
 }
 

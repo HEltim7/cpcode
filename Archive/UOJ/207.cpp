@@ -1,10 +1,12 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <cstring>
 #include <iostream>
 #include <map>
 #include <numeric>
 #include <queue>
+#include <random>
 #include <set>
 #include <tuple>
 #include <vector>
@@ -12,6 +14,9 @@ using namespace std;
 
 #define endl '\n'
 using LL=long long;
+constexpr int N=1e5+10,M=3e5+10;
+auto gen=mt19937_64(random_device()());
+using R=decltype(gen());
 
 template
 <class Info,class Tag,int MAX_SIZE,bool CHECK_LINK=0,bool CHECK_CUT=0>
@@ -19,6 +24,7 @@ struct LinkCutTree {
     #define lch tr[u].ch[0]
     #define rch tr[u].ch[1]
     #define wch(u) (tr[tr[u].p].ch[1]==u)
+    constexpr static bool ASSERT=true;
 
     struct Node {
         int ch[2],p;
@@ -71,8 +77,12 @@ struct LinkCutTree {
 
     int access(int u) {
         int v=0;
-        for(;u;v=u,u=tr[u].p)
-            splay(u),rch=v,pushup(u);
+        for(;u;v=u,u=tr[u].p) {
+            splay(u);
+            if(rch) tr[u].info.add(info(rch));
+            if(v) tr[u].info.sub(info(v));
+            rch=v,pushup(u);
+        }
         return v;
     }
 
@@ -102,16 +112,20 @@ struct LinkCutTree {
         return find_root(v)==u;
     }
 
-    bool link(int u,int v) {
+    bool link(int p,int u) {
         make_root(u);
-        if(CHECK_LINK&&find_root(v)==u) return 0;
-        tr[u].p=v;
+        if(CHECK_LINK&&find_root(p)==u)
+            return assert(!ASSERT),0;
+        make_root(p);
+        tr[p].info.add(info(u));
+        tr[u].p=p;
         return 1;
     }
 
     bool cut(int u,int v) {
         make_root(u);
-        if(CHECK_CUT&&!(find_root(v)==u&&rch==v&&!tr[v].ch[0])) return 0;
+        if(CHECK_CUT&&!(find_root(v)==u&&rch==v&&!tr[v].ch[0]))
+            return assert(!ASSERT),0;
         else access(v),splay(u);
         rch=tr[v].p=0;
         pushup(u);
@@ -154,38 +168,90 @@ struct Tag {
 };
 
 struct Info {
+    R val=0,sum=0,vsum=0;
 
     //* lch+parent+rch
     void pushup(const Info &l,const Info &r) {
-        
+        sum=l.sum^r.sum^vsum^val;
     }
 
     void update(const Tag &x) {
 
+    }
+
+    void add(const Info &x) {
+        vsum^=x.sum;
+    }
+
+    void sub(const Info &x) {
+        add(x);
     }
 };
 
 LinkCutTree<Info,Tag,int(1e5)+10> lct;
 
 void solve() {
-    int n,q;
-    cin>>n>>q;
-    while(q--) {
-        string op;
+    int n,m;
+    cin>>n>>m;
+
+    auto apply=[&](int u,R val) {
+        lct.access(u);
+        lct.splay(u);
+        lct.info(u).val^=val;
+    };
+
+    for(int i=1;i<n;i++) {
         int u,v;
-        cin>>op>>u>>v;
-        if(op.front()=='Q') {
-            if(lct.same(u,v)) cout<<"Yes"<<endl;
-            else cout<<"No"<<endl;
+        cin>>u>>v;
+        lct.link(u,v);
+    }
+
+    R sum=0;
+    int cnt=0;
+    map<int,tuple<int,int,R>> mp;
+
+    while(m--) {
+        int op,x,y,u,v;
+        cin>>op;
+        if(op==1) {
+            cin>>x>>y>>u>>v;
+            lct.cut(x,y);
+            lct.link(u,v);
         }
-        else if(op.front()=='C') lct.link(u, v);
-        else lct.cut(u, v);
+        else if(op==2) {
+            cin>>x>>y;
+            if(x>y) swap(x,y);
+            R r=gen();
+            apply(x,r);
+            apply(y,r);
+            sum^=r;
+            mp.emplace(++cnt,tuple{x,y,r});
+        }
+        else if(op==3) {
+            cin>>x;
+            auto [u,v,r]=mp[x];
+            mp.erase(x);
+            apply(u,r);
+            apply(v,r);
+            sum^=r;
+        }
+        else {
+            cin>>x>>y;
+            lct.cut(x,y);
+            R a=lct.info(x).sum;
+            R b=lct.info(y).sum;
+            if(a==b&&b==sum) cout<<"YES"<<endl;
+            else cout<<"NO"<<endl;
+            lct.link(x,y);
+        }
     }
 }
 
 int main() {
     ios::sync_with_stdio(0);
     cin.tie(nullptr);
+    int id;
+    cin>>id;
     solve();
     return 0;
 }
