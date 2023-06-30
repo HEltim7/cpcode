@@ -11,9 +11,16 @@
 #include <vector>
 using namespace std;
 
+// #define ONLINE_JUDGE
+#ifndef ONLINE_JUDGE
+#include <heltim7/debug>
+#else
+#define debug(...) 7
+#endif
+
 #define endl '\n'
 using LL=long long;
-constexpr int N=1e3+10,M=1e5+10;
+constexpr int N=1e4+10,M=1e5+10,C=12;
 
 template<class Info,class Tag,int MAX_SIZE,
          bool CHECK_LINK = 0,bool CHECK_CUT = 0,bool ASSERT = 0>
@@ -164,14 +171,11 @@ struct Tag {
 };
 
 struct Info {
-    int t,id;
-    int maxt,maxid;
+    int val,maxx;
 
     //* lch+parent+rch
     void pushup(const Info &l,const Info &r) {
-        vector v({pair(l.maxt,l.maxid),pair(r.maxt,r.maxid),pair(t,id)});
-        sort(v.begin(),v.end());
-        tie(maxt,maxid)=v.back();
+        maxx=max({l.maxx,r.maxx,val});
     }
 
     void update(const Tag &x) {
@@ -181,68 +185,65 @@ struct Info {
     void reverse() {}
 };
 
-LinkCutTree<Info,Tag,N+M> lct;
+array<LinkCutTree<Info,Tag,N>,C> lct;
+array<array<int, C>, N> cnt;
 
 void solve() {
-    int n,m,q;
-    cin>>n>>m>>q;
-    vector<tuple<int,int,int>> edg(1);
-    
-    auto add_edge=[&](int u,int v,int t) {
-        int w=edg.size();
-        lct.info(w)={t,w,t,w};
-        edg.emplace_back(u,v,w);
-        if(lct.same(u, v)) {
-            int rt=lct.split(u, v);
-            int id=lct.info(rt).maxid;
-            int tt=lct.info(rt).maxt;
-            auto [x,y,z]=edg[id];
-            if(tt>t) {
-                lct.cut(x, z);
-                lct.cut(y, z);
-                lct.link(u, w);
-                lct.link(v, w);
+    int n,m,c,q;
+    cin>>n>>m>>c>>q;
+    for(int i=1;i<=n;i++) {
+        int in;
+        cin>>in;
+        for(int j=0;j<c;j++) 
+            lct[j].info(i)={in,in};
+    }
+
+    map<pair<int,int>,int> color;
+    for(int i=1;i<=m;i++) {
+        int u,v,w;
+        cin>>u>>v>>w;
+        if(u>v) swap(u,v);
+        color[{u,v}]=w;
+        lct[w].link(u, v);
+        cnt[u][w]++,cnt[v][w]++;
+    }
+
+    while(q--) {
+        int k,u,v,w;
+        cin>>k>>u>>v;
+        if(k) cin>>w;
+        if(k==0) {
+            for(int j=0;j<c;j++) {
+                lct[j].splay(u);
+                lct[j].info(u).val=v;
+            }
+        }
+        else if(k==1) {
+            if(u>v) swap(u,v);
+            if(color.find({u,v})==color.end()) {
+                cout<<"No such edge."<<endl;
+                continue;
+            }
+
+            int pre=color[{u,v}];
+            if(pre==w) cout<<"Success."<<endl;
+            else if(cnt[u][w]+1>2||cnt[v][w]+1>2) cout<<"Error 1."<<endl;
+            else if(lct[w].same(u,v)) cout<<"Error 2."<<endl;
+            else {
+                cout<<"Success."<<endl;
+                cnt[u][pre]--,cnt[v][pre]--;
+                cnt[u][w]++,cnt[v][w]++;
+                color[{u,v}]=w;
+                lct[pre].cut(u, v);
+                lct[w].link(u, v);
             }
         }
         else {
-            lct.link(u, w);
-            lct.link(v, w);
-        }
-    };
-
-    map<pair<int,int>,int> mp;
-    for(int i=1;i<=m;i++) {
-        int u,v,t;
-        cin>>u>>v>>t;
-        if(u>v) swap(u,v);
-        u+=M,v+=M;
-        mp[{u,v}]=t;
-    }
-
-    vector<int> ans;
-    vector<tuple<int,int,int,int>> qry(q);
-    for(auto &[k,u,v,t]:qry) {
-        cin>>k>>u>>v;
-        if(u>v) swap(u,v);
-        u+=M,v+=M;
-        if(k==2) {
-            t=mp[{u,v}];
-            mp.erase({u,v});
+            if(lct[u].same(v, w))
+                cout<<lct[u].info(lct[u].split(v,w)).maxx<<endl;
+            else cout<<-1<<endl;
         }
     }
-    for(auto [_,t]:mp) {
-        auto [u,v]=_;
-        add_edge(u, v, t);
-    }
-
-    reverse(qry.begin(),qry.end());
-    for(auto [k,u,v,t]:qry) {
-        if(k==1) ans.emplace_back(lct.info(lct.split(u,v)).maxt);
-        else add_edge(u, v, t);
-    }
-
-    reverse(ans.begin(),ans.end());
-    for(int x:ans) cout<<x<<endl;
 }
 
 int main() {
