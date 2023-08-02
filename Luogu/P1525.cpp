@@ -1,69 +1,76 @@
-/*
-    P1525 关押罪犯
-    种类并查集
-    https://zhuanlan.zhihu.com/p/97813717
-*/
-#include<iostream>
-#include<algorithm>
+#include <algorithm>
+#include <array>
+#include <cassert>
+#include <cstring>
+#include <iostream>
+#include <map>
+#include <numeric>
+#include <queue>
+#include <set>
+#include <tuple>
+#include <vector>
 using namespace std;
-long n,m,fa[20010],ranks[20010];
 
-struct data{
-    int a;
-    int b;
-    long san;
-};
-data relation[100010];
+#define endl '\n'
+using LL=long long;
+constexpr int N=2e4+10;
 
-bool cmp(data in1,data in2){
-    return in1.san>in2.san;
-}
+struct DisjointUnionSet {
+    vector<int> fa,sz;
 
-int find(int in){
-    return fa[in]==in?in:(fa[in]=find(fa[in]));
-}
-
-void merge(int a,int b){
-    a=fa[find(fa[a])];
-    b=fa[find(fa[b])];
-
-    if(ranks[a]<ranks[b]){
-        fa[a]=fa[b];
+    void init(int n) {
+        fa.resize(n+1);
+        sz.assign(n+1,1);
+        iota(fa.begin(), fa.end(), 0);
     }
-    else if(ranks[a]>ranks[b]){
-        fa[b]=fa[a];
-    }
-    else{
-        fa[b]=fa[a];
-        ranks[a]++;
-    }
-}
 
-void init(){
-    for(int i=1;i<=2*n;i++){
-        fa[i]=i;
-        ranks[i]=1;
+    int find(int x) {
+        return x==fa[x]?x:fa[x]=find(fa[x]);
     }
-}
 
-int main(){
+    bool same(int x,int y) {
+        return find(x)==find(y);
+    }
+
+    bool join(int x,int y) {
+        x=find(x);
+        y=find(y);
+        if(x==y) return false;
+        if(sz[x]<sz[y]) swap(x,y);
+        sz[x]+=sz[y];
+        fa[y]=x;
+        return true;
+    }
+
+    int size(int x) {
+        return sz[find(x)];
+    }
+
+    DisjointUnionSet() = default;
+    DisjointUnionSet(int n) { init(n); }
+} dsu(N*2);
+
+void solve() {
+    int n,m;
     cin>>n>>m;
-    init();
-    for(int i=1;i<=m;i++){
-        scanf("%d%d%ld",&relation[i].a,&relation[i].b,&relation[i].san);
-    }
-    sort(relation+1,relation+m+1,cmp);
-    for(int i=1;i<=m;i++){
-        if(find(relation[i].a)==find(relation[i].b)){
-            cout<<relation[i].san;
-            return 0;
+    vector<tuple<int,int,int>> arr(m);
+    for(auto &[w,u,v]:arr) cin>>u>>v>>w;
+    sort(arr.begin(),arr.end(),greater<>());
+    
+    for(auto [w,u,v]:arr) {
+        if(dsu.same(u, v)) {
+            cout<<w<<endl;
+            return;
         }
-        else{
-            merge(relation[i].a,relation[i].b+n);
-            merge(relation[i].b,relation[i].a+n);
-        }
-        
+        dsu.join(u, v+N);
+        dsu.join(v, u+N);
     }
-    cout<<'0';
+    cout<<0<<endl;
+}
+
+int main() {
+    ios::sync_with_stdio(0);
+    cin.tie(nullptr);
+    solve();
     return 0;
 }

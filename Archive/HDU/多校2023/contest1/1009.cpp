@@ -115,7 +115,12 @@ namespace fast_io {
 using LL=long long;
 
 void solve() {
-    
+    LL n,m,d;
+    io>>n>>m>>d;
+    if((m+n-1)/n>=d) {
+        io<<"Yes"<<endl;
+    }
+    else io<<"No"<<endl;
 }
 
 int main() {

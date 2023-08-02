@@ -11,13 +11,6 @@
 #include <vector>
 using namespace std;
 
-// #define ONLINE_JUDGE
-#ifndef ONLINE_JUDGE
-#include <heltim7/debug>
-#else
-#define debug(...) 7
-#endif
-
 #define endl '\n'
 using LL=long long;
 constexpr int N=1e6+10;
@@ -30,14 +23,19 @@ void solve() {
     for(int i=1;i<=n;i++) cin>>heap[i];
 
     auto jump=[&](int pos,int val,bool type) {
-        if(!type&&val>heap[pos]) return -1;
-        if(type&&val<heap[pos]) return -1;
-        while(pos>1) {
-            if(!type&&val<=heap[pos/2]) pos/=2;
-            else if(type&&val>=heap[pos/2]) pos/=2;
-            else break;
+        if(heap[pos]!=val) {
+            if(!type&&heap[pos]<val||
+                type&&heap[pos]>val) return -1;
         }
-        return heap[pos]==val?pos:-1;
+        while(heap[pos]!=val&&pos>1) {
+            if(!type&&heap[pos/2]<val||
+                type&&heap[pos/2]>val) return -1;
+            pos/=2;
+        }
+        if(heap[pos]!=val) return -1;
+        if(pos>1&&(!type&&heap[pos/2]>val||
+                    type&&heap[pos/2]<val)) return -1;
+        return pos;
     };
 
     auto erase=[&](int from,int to) {
@@ -53,16 +51,12 @@ void solve() {
             int dn=path[i];
             heap[up]=heap[dn];
         }
-
-        debug(path);
-        debug(heap,1,n);
     };
 
     string ans;
     for(int i=n;i>=1;i--) {
         int minp=jump(i, arr[i], 0);
         int maxp=jump(i, arr[i], 1);
-        debug(minp,maxp);
         if(minp==-1&&maxp==-1) {
             cout<<"Impossible"<<endl;
             return;
