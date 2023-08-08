@@ -98,6 +98,7 @@ void solve() {
     cin>>n;
     vector<int> arr(n);
     for(int &x:arr) cin>>x;
+    // sort(arr.begin(),arr.end());
     
     int l=0,r=(1LL<<30)-1;
     while(l<r) {
@@ -105,9 +106,9 @@ void solve() {
         auto check=[&]() {
             BinaryTrie<int> a,b;
             for(int x:arr) {
-                if(a.empty()||(a.xor_min(x))>=mid) a.insert(x);
+                if(a.xor_min(x)>=mid) a.insert(x);
                 else {
-                    if(!b.empty()&&(b.xor_min(x))<mid) return false;
+                    if(b.xor_min(x)<mid) return false;
                     else b.insert(x);
                 }
             }
