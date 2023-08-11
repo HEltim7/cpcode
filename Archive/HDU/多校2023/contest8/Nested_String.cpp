@@ -12,102 +12,52 @@
 #include <vector>
 using namespace std;
 
+// #define ONLINE_JUDGE
+#ifndef ONLINE_JUDGE
+#include <heltim7/debug>
+#else
+#define debug(...) 7
+#endif
+
 #define endl '\n'
 using LL=long long;
 
-struct SuffixAutomaton {
-    constexpr static int A=26;
-    constexpr static char B='a';
-    struct Endpos {
-        int link,len,cnt;
-        int ch[A];
-    };
-    vector<Endpos> edp;
-    int last=0;
-
-    int new_node() {
-        edp.push_back({});
-        return edp.size()-1;
+vector<int> zfunc(const string &s) {
+    int n=s.size();
+    vector<int> z(n);
+    for(int i=1,l=0,r=0;i<n;i++) {
+        if(i<=r) z[i]=min(z[i-l],r-i+1);
+        while(i+z[i]<n&&s[i+z[i]]==s[z[i]]) z[i]++;
+        if(i+z[i]-1>r) l=i,r=i+z[i]-1;
     }
-
-    void extend(char x) {
-        int c=x-B;
-        int p=last;
-        int cur=last=new_node();
-        edp[cur].len=edp[p].len+1;
-        for(;p!=-1&&!edp[p].ch[c];p=edp[p].link) edp[p].ch[c]=cur;
-        if(p!=-1) {
-            int q=edp[p].ch[c];
-            if(edp[p].len+1==edp[q].len) edp[cur].link=q;
-            else {
-                int clone=new_node();
-                edp[clone]=edp[q];
-                edp[clone].len=edp[p].len+1; 
-                edp[cur].link=edp[q].link=clone;
-                for(;p!=-1&&edp[p].ch[c]==q;p=edp[p].link) 
-                    edp[p].ch[c]=clone;
-            }
-        }
-    }
-
-    vector<int> toporder;
-    void toposort() {
-        auto &q=toporder;
-        q.clear();
-        q.reserve(size());
-        vector<int> ind(size());
-        for(int i=1;i<size();i++) ind[edp[i].link]++;
-        for(int i=1;i<size();i++) if(!ind[i]) q.push_back(i);
-        for(int i=0;i<q.size();i++) {
-            int u=q[i];
-            int p=edp[u].link;
-            if(p&&!--ind[p]) q.push_back(p);
-        }
-    }
-
-    void count(const string &s) {
-        int u=0;
-        for(auto x:s) {
-            int c=x-B;
-            u=edp[u].ch[c];
-            edp[u].cnt++;
-        }
-        for(int u:toporder) {
-            int p=edp[u].link;
-            edp[p].cnt+=edp[u].cnt;
-        }
-    }
-
-    int size() { return edp.size(); }
-    void build(const string &s) { for(auto x:s) extend(x); }
-    void clear() { edp.clear(),edp.push_back({-1}),last=0; }
-    
-    SuffixAutomaton(int sz=0) { edp.reserve(sz),clear(); }
-    SuffixAutomaton(const string &s) { edp.reserve(s.size()*2),clear(),build(s); }
-} sam;
+    return z;
+}
 
 void solve() {
-    string t1,t2,s;
+    string s,t1,t2;
     cin>>t1>>t2>>s;
-    sam.clear();
-    sam.build(s);
-    sam.toposort();
-    sam.count(s);
+    int n=s.size();
+    auto &&valid=zfunc(t2+"#"+s);
+    valid.erase(valid.begin(),valid.begin()+t2.size()+1);
+    for(int &x:valid) x=x==t2.size();
+    partial_sum(valid.begin(),valid.end(),valid.begin());
+
+    auto &&pre=zfunc(t1+"#"+s);
+    pre.erase(pre.begin(),pre.begin()+t1.size()+1);
+
+    reverse(t1.begin(),t1.end());
+    reverse(s.begin(),s.end());
+    auto &&suf=zfunc(t1+"#"+s);
+    suf.erase(suf.begin(),suf.begin()+t1.size()+1);
+    reverse(suf.begin(),suf.end());
 
     LL ans=0;
-    const auto &edp=sam.edp;
-    int u=0;
-    for(int i=0;i<s.size();i++) {
-        if(i) {
-            int c=s[i]-sam.B;
-            u=edp[u].ch[c];
-            if(!u) {
-                cout<<ans<<endl;
-                return;
-            }
-        }
-        
+    for(int l=0,r=l+t1.size()+t2.size()-1;r<n;l++,r++) {
+        int y=l+pre[l];
+        int x=r-suf[r]-t2.size()+1;
+        if(x<=y) ans+=valid[y]-(x?valid[x-1]:0);
     }
+    cout<<ans<<endl;
 }
 
 int main() {
