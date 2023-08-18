@@ -29,18 +29,18 @@ vector<int> adj[N];
 
 void bfs(int id) {
     memset(mark, 0, sizeof mark);
-    queue<pair<int,int>> q;
-    q.emplace(0,id);
+    deque<pair<int,int>> q;
+    q.emplace_back(0,id);
     mark[id]=1;
     while(q.size()) {
         auto [d,u]=q.front();
         ans[id][u]=d;
-        q.pop();
+        q.pop_front();
         for(int v:adj[u]) {
             if(!mark[v]) {
-                debug(v-A,d+1);
                 mark[v]=1;
-                q.emplace(d+1,v);
+                if(v<A) q.emplace_front(d,v);
+                else q.emplace_back(d+1,v);
             }
         }
     }
@@ -63,12 +63,8 @@ void solve() {
         int id=get(i);
         adj[i+A].emplace_back(id);
         adj[id].emplace_back(i+A);
-        if(i>1) {
-            adj[i+A].emplace_back(i-1+A);
-        }
-        if(i+1<n) {
-            adj[i+A].emplace_back(i+1+A);
-        }
+        if(i>1) adj[i+A].emplace_back(i-1+A);
+        if(i+1<n) adj[i+A].emplace_back(i+1+A);
     }
     for(int i=0;i<A;i++) if(adj[i].size()) bfs(i);
 
@@ -88,11 +84,8 @@ void solve() {
         cin>>f>>t;
         int res=abs(f-t);
         for(int i=0;i<A;i++) {
-            if(pre[f][i]) {
-                res=min(res,ans[i][t+A]+f-pre[f][i]);
-            }
-            if(suf[f][i])
-                res=min(res,ans[i][t+A]+suf[f][i]-f);
+            if(pre[f][i]) res=min(res,ans[i][t+A]+f-pre[f][i]);
+            if(suf[f][i]) res=min(res,ans[i][t+A]+suf[f][i]-f);
         }
         cout<<res<<endl;
     }
