@@ -1,6 +1,8 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <cstring>
+#include <functional>
 #include <iostream>
 #include <map>
 #include <numeric>
@@ -19,100 +21,77 @@ using namespace std;
 
 #define endl '\n'
 using LL=long long;
-constexpr int N=1e5+10,M=N*10;
+using I128=__int128;
+constexpr int N=2e5+10;
 
-template<typename T=int,T init=T()> struct Fenwick {
-    int size=0;
-    vector<T> tr;
+template<int size> struct SegmentTree {
+    #define lch ((u)<<1)
+    #define rch ((u)<<1|1)
 
-    int lowbit(int x) { return x&(-x); }
+    int rng_l,rng_r;
+    constexpr static int node_size=1<<__lg(size)<<2|1;
+    array<set<int>, node_size> info;
+    array<int, size+1> leaf;
 
-    void update(T &aim,const T &val) { aim+=val; }
-
-    void add(int pos,T val) {
-        while(pos<=size) update(tr[pos],val),pos+=lowbit(pos);
-    }
-
-    T query(int pos) {
-        T res=init;
-        while(pos) update(res,tr[pos]),pos-=lowbit(pos);
-        return res;
-    }
-
-    void reset(int pos) {
-        while(pos<=size) {
-            tr[pos]=init;
-            pos+=lowbit(pos);
+    bool check(int u,int l,int r,int x,int y,int p,int q) {
+        if(l>y||r<x) return true;
+        if(l>=x&&r<=y) {
+            auto it=info[u].lower_bound(p);
+            return it==info[u].end()||*it>q;
         }
+        int mid=(l+r)/2;
+        return check(lch,l,mid,x,y,p,q)&check(rch,mid+1,r,x,y,p,q);
+    }
+    bool check(int x,int y,int p,int q) {
+        return check(1,rng_l,rng_r,x,y,p,q);
     }
 
-    void resize(int n) {
-        size=n;
-        tr.resize(size+1,init);
+    void insert(int p,int x) {
+        int u=leaf[p];
+        info[u].insert(x);
+        while(u>>=1) info[u].insert(x);
     }
 
-    Fenwick()=default;
-    Fenwick(int n):size(n) { tr.resize(size+1,init); }
+    void erase(int p,int x) {
+        int u=leaf[p];
+        info[u].erase(x);
+        while(u>>=1) info[u].erase(x);
+    }
+
+    void build(int u,int l,int r) {
+        info[u].clear();
+        if(l!=r) {
+            int mid=(l+r)/2;
+            build(lch,l,mid);
+            build(rch,mid+1,r);
+        }
+        else leaf[l]=u;
+    }
+    void build(int l=1,int r=size) { build(1,rng_l=l,rng_r=r); }
+
+    #undef lch
+    #undef rch
 };
-
-Fenwick<> tr(M);
-
-namespace cdq {
-    constexpr int N=M;
-    LL ans;
-
-    struct Point {
-        int x,y,z,sign;
-        bool q;
-        bool operator<(const Point &p) const {
-            return x<p.x;
-        }
-    } p[N],tmp[N],bak[N];
-
-    void solve(const int L,const int R) {
-        if(L==R) return;
-        int mid=L+R>>1;
-        solve(L,mid),solve(mid+1,R);
-
-        int i=L,j=mid+1,idx=L;
-        while(j<=R) {
-            while(i<=mid&&p[i].y<=p[j].y) {
-                if(!p[i].q) tr.add(p[i].z, 1);
-                tmp[idx++]=p[i++];
-            }
-            if(p[j].q) {
-                debug(p[j].x,p[j].y,p[j].z);
-                debug(tr.query(p[j].z)*p[j].sign);
-                debug();
-                ans+=tr.query(p[j].z)*p[j].sign;
-            }
-            tmp[idx++]=p[j++];
-        }
-        for(int k=L;k<i;k++) if(!p[k].q) tr.reset(p[k].z);
-        while(i<=mid) tmp[idx++]=p[i++];
-        for(int i=L;i<=R;i++) p[i]=tmp[i];
-    }
-
-} using cdq::p,cdq::bak;
-
-int pl[N][3],pr[N][3];
+SegmentTree<N> sgt;
 
 void solve() {
     int w,h,l;
     cin>>w>>h>>l;
-    __int128 totv=__int128(w)*h*l;
-
+    I128 totv=I128(w)*h*l;
     int n;
     cin>>n;
     vector<int> num;
+    vector<tuple<int,bool,int,int,int,int>> p;
     for(int i=1;i<=n;i++) {
-        for(int j=0;j<3;j++) cin>>pl[i][j],num.emplace_back(pl[i][j]);
-        for(int j=0;j<3;j++) cin>>pr[i][j],num.emplace_back(pr[i][j]);
-        totv-=__int128(pr[i][0]-pl[i][0])*(pr[i][1]-pl[i][1])*(pr[i][2]-pl[i][2]);
-        for(int j=0;j<3;j++) num.emplace_back(++pl[i][j]);
+        int a,b,c,x,y,z;
+        cin>>a>>b>>c>>x>>y>>z;
+        totv-=I128(x-a)*(y-b)*(z-c);
+        x--,y--,z--;
+        num.emplace_back(a);
+        num.emplace_back(x);
+        p.emplace_back(c,true,a,b,x,y);
+        p.emplace_back(z+1,false,a,b,x,y);
     }
-
-    debug(totv);
     if(totv) {
         cout<<"No"<<endl;
         return;
@@ -120,47 +99,37 @@ void solve() {
 
     sort(num.begin(),num.end());
     num.erase(unique(num.begin(),num.end()),num.end());
-    for(int i=1;i<=n;i++) {
-        for(int j=0;j<3;j++) {
-            pl[i][j]=lower_bound(num.begin(),num.end(),pl[i][j])-num.begin()+1;
-            pr[i][j]=lower_bound(num.begin(),num.end(),pr[i][j])-num.begin()+1;
+    for(auto &[c,add,a,b,x,y]:p) {
+        a=lower_bound(num.begin(),num.end(),a)-num.begin()+1;
+        x=lower_bound(num.begin(),num.end(),x)-num.begin()+1;
+    }
+    sort(p.begin(),p.end());
+
+    int mx=num.size();
+    sgt.build(1,mx);
+    for(auto [c,add,a,b,x,y]:p) {
+        if(add&&!sgt.check(a,x,b,y)) {
+            cout<<"No"<<endl;
+            return;
         }
-    }
-    
-    int idx=0;
-    for(int i=1;i<=n;i++) {
-        p[++idx]={pl[i][0],pl[i][1],pl[i][2],0,0};
-        p[++idx]={pr[i][0],pr[i][1],pr[i][2],1,1};
-    }
-    sort(p+1,p+1+idx);
-    cdq::solve(1, idx);
-    cdq::ans-=n;
-    debug(cdq::ans);
-    debug("==========");
 
-    idx=0;
-    for(int i=1;i<=n;i++) {
-        int x=pr[i][0],y=pr[i][1],z=pr[i][2];
-        int xx=pl[i][0]-1,yy=pl[i][1]-1,zz=pl[i][2]-1;
-        p[++idx]={x,y,z,0,0};
-        p[++idx]={xx,y,z,-1,1};
-        p[++idx]={x,yy,z,-1,1};
-        p[++idx]={x,y,zz,-1,1};
-        p[++idx]={xx,yy,z,1,1};
-        p[++idx]={xx,y,zz,1,1};
-        p[++idx]={x,yy,zz,1,1};
-        p[++idx]={xx,yy,zz,-1,1};
-    }
-    sort(p+1,p+1+idx);
-    cdq::solve(1, idx);
-    debug(cdq::ans);
+        vector<pair<int,int>> vec;
+        vec.emplace_back(a, b);
+        if(b!=y) vec.emplace_back(a, y);
+        if(a!=x) {
+            vec.emplace_back(x, b);
+            if(b!=y) vec.emplace_back(x, y);
+        }
 
-    // 特判完全相同的cube
-    cout<<(cdq::ans==0?"Yes":"No")<<endl;
+        if(add) for(auto [x,y]:vec) sgt.insert(x, y);
+        else for(auto [x,y]:vec) sgt.erase(x, y);
+    }
+
+    cout<<"Yes"<<endl;
 }
 
 int main() {
-    ios::sync_with_stdio(0);
+    ios::sync_with_stdio(false);
     cin.tie(nullptr);
     int t;
     cin>>t;
