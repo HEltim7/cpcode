@@ -40,8 +40,7 @@ struct DSU {
 };
 
 struct SegSet {
-    struct Seg
-    {
+    struct Seg {
         int l;
         mutable int r,p;
         bool operator<(const Seg &x) const {
