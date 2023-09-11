@@ -111,6 +111,7 @@ void solve() {
             dur.emplace_back(mn[i],res+mn[i]);
         }
     }
+    debug(dur);
 
     sort(dur.begin(),dur.end(),greater<>());
     multiset<LL> st;
