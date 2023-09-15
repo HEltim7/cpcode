@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <array>
-#include <bitset>
 #include <cassert>
 #include <cstring>
 #include <functional>
@@ -13,17 +12,8 @@
 #include <vector>
 using namespace std;
 
-// #define ONLINE_JUDGE
-#ifndef ONLINE_JUDGE
-#include <heltim7/debug>
-#else
-#define debug(...) 7
-#endif
-
 #define endl '\n'
 using LL=long long;
-constexpr int N=2e5+10;
-using BS=bitset<N>;
 
 template<typename I,typename L,I mod> struct Modint {
     I v;
@@ -66,52 +56,57 @@ template<typename I,typename L,I mod> struct Modint {
 void solve() {
     int n,m;
     cin>>n>>m;
-    set<pair<int,int>> st;
+    auto del=vector(n+1,vector<int>());
     for(int i=1;i<=m;i++) {
         int u,v;
         cin>>u>>v;
-        if(u>v) swap(u,v);
-        st.emplace(u,v);
+        del[u].emplace_back(v);
+        del[v].emplace_back(u);
     }
+    for(int i=1;i<=n;i++) sort(del[i].begin(),del[i].end());
 
-    if(st.find({1,n})==st.end()) {
-        cout<<1<<endl;
+    vector<int> dis(n+1,n+10);
+    auto bfs=[&]() {
+        set<int> st;
+        for(int i=2;i<=n;i++) st.emplace(i);
+        queue<int> q;
+        dis[1]=1;
+        q.emplace(1);
+        while(q.size()&&st.size()) {
+            int u=q.front();
+            for(auto it=st.begin();it!=st.end();) {
+                int v=*it;
+                if(dis[u]+1>=dis[v]||
+                    binary_search(del[u].begin(),del[u].end(),v)) it++;
+                else {
+                    dis[v]=dis[u]+1;
+                    q.emplace(v);
+                    it=st.erase(it);
+                }
+            }
+            q.pop();
+        }
+    };
+
+    bfs();
+    if(dis[n]>n) {
+        cout<<-1<<endl;
         return;
     }
-    st.erase({1,n});
 
-    BS s,t;
-    for(int i=2;i<=n;i++) s[i]=1;
-    for(int i=1;i<n;i++) t[i]=1;
-    Mint ans=n-2;
-    for(int i=n-3;st.size();i--) {
-        for(int i=s._Find_first();i<=n;i=s._Find_next(i)) {
-            auto it=st.find({1,i});
-            if(it!=st.end()) {
-                s[i]=0;
-                st.erase(it);
-            }
-        }
-        for(int i=t._Find_first();i<=n;i=t._Find_next(i)) {
-            auto it=st.find({i,n});
-            if(it!=st.end()) {
-                t[i]=0;
-                st.erase(it);
-            }
-        }
+    vector<Mint> dp(n+1),sum(n+1);
+    auto lay=vector(n+1,vector<int>());
+    for(int i=1;i<=n;i++) if(dis[i]<=n) lay[dis[i]].emplace_back(i);
 
-        auto tmp=s&t;
-        if(tmp.count()) {
-            cout<<ans-st.size()<<endl;
-            return;
-        }
-        else {
-            ans*=i;
-            for(int i=2;i<=n;i++) s[i]=1;
-            for(int i=1;i<n;i++) t[i]=1;
+    dp[1]=sum[1]=1;
+    for(int i=2;i<=n;i++) {
+        for(int u:lay[i]) {
+            dp[u]+=sum[i-1];
+            for(int v:del[u]) if(dis[v]+1==dis[u]) dp[u]-=dp[v];
+            sum[i]+=dp[u];
         }
     }
-    cout<<-1<<endl;
+    cout<<dp[n]<<endl;
 }
 
 int main() {

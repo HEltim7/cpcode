@@ -36,16 +36,16 @@ void solve() {
         cout<<"! "<<(ans)<<endl;
     };
 
-    int gap=n%k;
-    if(gap==0) gap+=k;
-    vector<int> res;
-    for(int i=1;i+k-1<=n;i+=gap) {
-        res.emplace_back(ask(i));
+    for(int i=1;i+k-1<=n;i+=k) {
+        xsum^=ask(i);
     }
-    for(int x:res) xsum^=x;
-    int ans=0;
-    for(int x:res) ans^=xsum^x;
-    fin(ans);
+
+    if(n%k) {
+        int t=n%k/2;
+        xsum^=ask(n-t-k+1);
+        xsum^=ask(n-k+1);
+    }
+    fin(xsum);
 }
 
 int main() {
