@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <array>
-#include <bitset>
 #include <cassert>
 #include <cstring>
 #include <functional>
@@ -13,54 +12,51 @@
 #include <vector>
 using namespace std;
 
-// #define ONLINE_JUDGE
-#ifndef ONLINE_JUDGE
-#include <heltim7/debug>
-#else
-#define debug(...) 7
-#endif
-
 #define endl '\n'
 using LL=long long;
-constexpr int N=5e3+10,M=1<<13;
-using BS=bitset<M>;
-int mex[N][N],ed[N][N];
-BS dp[N];
 
 void solve() {
     int n;
     cin>>n;
     vector<int> arr(n+1);
     for(int i=1;i<=n;i++) cin>>arr[i];
-    set<int> bak,st;
-    for(int i=0;i<=n;i++) bak.insert(i);
-    for(int i=1;i<=n;i++) {
-        st=bak;
-        for(int j=i,last=i;j<=n;j++) {
-            auto it=st.find(arr[j]);
-            if(it!=st.end()) st.erase(arr[j]);
-            mex[i][j]=*st.begin();
-            if(j==i||mex[i][j-1]==mex[i][j]) ed[i][last]=j;
-            else last=j,ed[i][last]=j;
-        }
-    }
-
-    for(int i=1;i<=n;i++) dp[i].reset();
-    dp[0][0]=1;
-    for(int i=1;i<=n;i++) {
-        dp[i][0]=1;
-        for(int j=i;j<=n;j=ed[i][j]+1) {
-            for(int k=dp[i-1]._Find_first();k<M;k=dp[i-1]._Find_next(k)) {
-                dp[j][k^mex[i][j]]=1;
+    auto work=[&]() {
+        vector<int> r(n+1,n+1);
+        vector<tuple<int,int,int>> seg;
+        for(int i=n;i>=1;i--) {
+            r[arr[i]]=i;
+            int idx=i;
+            for(int j=0;j<arr[i];j++) idx=max(idx,r[j]);
+            if(idx<=n) {
+                vector<bool> mark(n+1);
+                for(int j=i;j<=idx;j++) mark[arr[j]]=1;
+                int m=0;
+                while(mark[m]) m++;
+                seg.emplace_back(i,idx,m);
             }
         }
-        dp[i]|=dp[i-1];
+        return seg;
+    };
+
+    auto seg=vector(n+1,vector<pair<int,int>>());
+    auto tmp=work();
+    for(auto [l,r,m]:tmp) seg[l].emplace_back(r,m);
+    reverse(arr.begin()+1,arr.end());
+    tmp=work();
+    for(auto [l,r,m]:tmp) seg[n-r+1].emplace_back(n-l+1,m);
+
+    auto dp=vector(n+1,vector<bool>(n+1));
+    dp[0][0]=1;
+    for(int i=0;i<n;i++) {
+        for(auto [r,m]:seg[i+1])
+            for(int j=0;j<=n;j++)
+                dp[r][j^m]=max(dp[r][j^m],dp[i][j]);
+        for(int j=0;j<=n;j++) dp[i+1][j]=max(dp[i+1][j],dp[i][j]);
     }
 
-    for(int i=M-1;i>=0;i--) if(dp[n][i]) {
-        cout<<i<<endl;
-        return;
-    }
+    int ans=n;
+    while(!dp[n][ans]) ans--;
+    cout<<ans<<endl;
 }
 
 int main() {
