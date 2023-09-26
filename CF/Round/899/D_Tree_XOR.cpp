@@ -14,54 +14,13 @@ using namespace std;
 
 #define endl '\n'
 using LL=long long;
-constexpr int N=2e5+10,K=21;
-vector<int> adj[N];
-int arr[N];
-LL sz[N],dp[K][N][2],sum1[K][N][2],sum2[K][N][2];
-LL ans[N];
-
-void dfs1(int u,int fa,int b) {
-    sz[u]=1;
-    for(int v:adj[u]) {
-        if(v!=fa) {
-            dfs1(v, u, b);
-            sz[u]+=sz[v];
-            sum1[b][u][0]+=dp[b][v][0];
-            sum1[b][u][1]+=dp[b][v][1];
-        }
-    }
-
-    bool x=arr[u]>>b&1;
-    dp[b][u][x]=sum1[b][u][x];
-    dp[b][u][!x]=sum1[b][u][x]+sz[u];
-}
-
-int n;
-void dfs2(int u,int fa) {
-    for(int v:adj[u]) {
-        if(v!=fa) {
-            for(int b=0;b<K;b++) {
-                LL szu=n-sz[v];
-                array<LL,2> sumu{},dpu{};
-                sumu[0]=sum2[b][u][0]-dp[b][v][0];
-                sumu[1]=sum2[b][u][1]-dp[b][v][1];
-                bool x=arr[u]>>b&1;
-                dpu[x]=sumu[x];
-                dpu[!x]=sumu[x]+szu;
-                
-                x=arr[v]>>b&1;
-                sum2[b][v][0]=sum1[b][v][0]+dpu[0];
-                sum2[b][v][1]=sum1[b][v][1]+dpu[1];
-                ans[v]+=(1LL<<b)*sum2[b][v][x];
-            }
-            dfs2(v, u);
-        }
-    }
-}
 
 void solve() {
+    int n;
     cin>>n;
-    for(int i=1;i<=n;i++) cin>>arr[i];
+    vector<int> a(n+1);
+    vector<vector<int>> adj(n+1);
+    for(int i=1;i<=n;i++) cin>>a[i];
     for(int i=1;i<n;i++) {
         int u,v;
         cin>>u>>v;
@@ -69,28 +28,36 @@ void solve() {
         adj[v].emplace_back(u);
     }
 
-    constexpr int rt=1;
-    for(int b=0;b<K;b++) dfs1(rt, 0, b);
-    for(int b=0;b<K;b++) 
-        sum2[b][rt][0]=sum1[b][rt][0],
-        sum2[b][rt][1]=sum1[b][rt][1];
-
-    dfs2(rt, 0);
-    for(int b=0;b<K;b++) {
-        int x=arr[rt]>>b&1;
-        ans[rt]+=(1LL<<b)*dp[b][rt][x];
-    }
-    
-    for(int i=1;i<=n;i++) cout<<ans[i]<<" \n"[i==n];
-    for(int i=1;i<=n;i++) {
-        ans[i]=0;
-        adj[i].clear();
-        for(int b=0;b<K;b++) {
-            sum1[b][i][0]=sum1[b][i][1]=0;
-            sum2[b][i][0]=sum2[b][i][1]=0;
-            dp[b][i][0]=dp[b][i][1]=0;
+    LL ans=0;
+    vector<int> sz(n+1);
+    // add[u]=将u向上子树xor上a[u]^a[p]的代价-将u向下子树xor上a[u]^a[p]的代价
+    vector<LL> add(n+1);
+    function<void(int,int)> dfs1=[&](int u,int fa) {
+        sz[u]=1;
+        for(int v:adj[u]) {
+            if(v!=fa) {
+                dfs1(v,u);
+                sz[u]+=sz[v];
+                ans+=1LL*sz[v]*(a[u]^a[v]);
+                add[v]=1LL*(n-sz[v]-sz[v])*(a[u]^a[v]);
+            }
         }
-    }
+    };
+
+    // 以u为根的代价=从1到u路径上的代价全部变为向上
+    function<void(int,int)> dfs2=[&](int u,int fa) {
+        for(int v:adj[u]) {
+            if(v!=fa) {
+                // 链上前缀和
+                add[v]+=add[u];
+                dfs2(v,u);
+            }
+        }
+    };
+
+    dfs1(1,0);
+    dfs2(1,0);
+    for(int i=1;i<=n;i++) cout<<ans+add[i]<<" \n"[i==n];
 }
 
 int main() {
