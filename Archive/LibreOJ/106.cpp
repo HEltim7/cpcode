@@ -13,8 +13,16 @@
 #include <vector>
 using namespace std;
 
+// #define ONLINE_JUDGE
+#ifndef ONLINE_JUDGE
+#include <heltim7/debug>
+#else
+#define debug(...) 7
+#endif
+
 #define endl '\n'
 using LL=long long;
+constexpr int N=5e4+10;
 
 template<class Node> struct Treap {
     #define lch (tr[u].ch[0])
@@ -146,6 +154,10 @@ template<class Node> struct Treap {
 
     int prev(I key) { return kth(rank(key)-1); }
     int next(I key) { return kth(rank(key,true)); }
+    int prev_equal(I key) { return kth(rank(key,true)-1); }
+    int next_equal(I key) { return kth(rank(key)); }
+
+    bool empty() { return root==0; }
 
     void clear() {
         root=0;
@@ -166,9 +178,9 @@ template<class Node> struct Treap {
 auto rnd=mt19937(random_device()());
 struct Node {
     int ch[2],prio,sz;
-    int val;
+    int idx;
 
-    Node(int key=0): val(key) {
+    Node(int idx=0): idx(idx) {
         ch[0]=ch[1]=0;
         prio=rnd();
         sz=1;
@@ -194,24 +206,122 @@ struct Node {
     }
 
     bool operator<(const Node &r) const {
-        return val<r.val;
+        return idx<r.idx;
     }
 };
 
-void solve() {
-    Treap<Node> tr(1e5+10);
+int arr[N];
+struct SegmentTree {
+    #define lch ((u)<<1)
+    #define rch ((u)<<1|1)
 
-    int q;
-    cin>>q;
-    while(q--) {
-        int op,x;
-        cin>>op>>x;
-        if(op==1) tr.insert(Node(x));
-        if(op==2) tr.erase(Node(x));
-        if(op==3) cout<<tr.rank(Node(x))<<endl;
-        if(op==4) cout<<tr[tr.kth(x)].val<<endl;
-        if(op==5) cout<<tr[tr.prev(Node(x))].val<<endl;
-        if(op==6) cout<<tr[tr.next(Node(x))].val<<endl;
+    int rng_l,rng_r;
+    constexpr static int node_size=1<<__lg(N*2)<<2|1;
+    array<Treap<Node>, node_size> tr;
+    array<int, N*2+1> leaf;
+
+    int count(int u,int l,int r) {
+        return tr[u].rank(Node(r+1))-tr[u].rank(Node(l));
+    }
+
+    int count(int u,int l,int r,int x,int y,int p,int q) {
+        if(l>y||r<x) return {};
+        if(l>=x&&r<=y) return count(u,p,q);
+        int m=(l+r)/2;
+        return count(lch,l,m,x,y,p,q)+count(rch,m+1,r,x,y,p,q);
+    }
+    int range_rank(int p,int q,int x) {
+        return count(1,rng_l,rng_r,0,x-1,p,q)+1;
+    }
+    
+    int find(int u,int l,int r,int p,int q,int k,int cnt) {
+        if(l==r) return l;
+        int m=(l+r)/2;
+        if(cnt+count(lch,p,q)>=k) return find(lch,l,m,p,q,k,cnt);
+        return find(rch,m+1,r,p,q,k,cnt+count(lch,p,q));
+    }
+    int range_kth(int p,int q,int k) {
+        int idx=find(1,rng_l,rng_r,p,q,k,0);
+        return find(1,rng_l,rng_r,p,q,k,0);
+    }
+
+    void erase(int p) {
+        int x=arr[p];
+        int u=leaf[x];
+        tr[u].erase(Node(p));
+        while(u>>=1) tr[u].erase(Node(p));
+    }
+
+    void insert(int p,int x) {
+        arr[p]=x;
+        int u=leaf[x];
+        tr[u].insert(Node(p));
+        while(u>>=1) tr[u].insert(Node(p));
+    }
+
+    void modify(int p,int x) {
+        erase(p);
+        insert(p, x);
+    }
+
+    int prev(int p,int q,int x) {
+        int rk=range_rank(p, q, x);
+        return range_kth(p, q, rk-1);
+    }
+
+    int next(int p,int q,int x) {
+        int rk=range_rank(p, q, x+1);
+        return range_kth(p, q, rk);
+    }
+
+    void build(int u,int l,int r) {
+        tr[u].tr.reserve(r-l);
+        if(l!=r) {
+            int mid=(l+r)/2;
+            build(lch,l,mid);
+            build(rch,mid+1,r);
+        }
+        else leaf[l]=u;
+    }
+    void build(int l,int r) { build(1,rng_l=l,rng_r=r); }
+
+    #undef lch
+    #undef rch
+} sgt;
+
+void solve() {
+    int n,m;
+    cin>>n>>m;
+    vector<int> num;
+    for(int i=1;i<=n;i++) {
+        cin>>arr[i];
+        num.emplace_back(arr[i]);
+    }
+
+    vector<tuple<int,int,int,int>> qry(m);
+    for(auto &[op,l,r,x]:qry) {
+        cin>>op>>l>>r;
+        if(op!=3) cin>>x;
+        if(op==3) num.emplace_back(r);
+        if(op>=4) num.emplace_back(x);
+    }
+
+    sort(num.begin(),num.end());
+    num.erase(unique(num.begin(),num.end()),num.end());
+    auto get=[&](int x) {
+        return lower_bound(num.begin(),num.end(),x)-num.begin();
+    };
+    for(int i=1;i<=n;i++) arr[i]=get(arr[i]);
+
+    sgt.build(0,num.size()-1);
+    for(int i=1;i<=n;i++) sgt.insert(i, arr[i]);
+
+    for(auto [op,l,r,x]:qry) {
+        if(op==1) cout<<sgt.range_rank(l, r, get(x))<<endl;
+        if(op==2) cout<<num[sgt.range_kth(l, r, x)]<<endl;
+        if(op==3) sgt.modify(l, get(r));
+        if(op==4) cout<<num[sgt.prev(l, r, get(x))]<<endl;
+        if(op==5) cout<<num[sgt.next(l, r, get(x))]<<endl;
     }
 }
 

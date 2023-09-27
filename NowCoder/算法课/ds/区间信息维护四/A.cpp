@@ -13,8 +13,53 @@
 #include <vector>
 using namespace std;
 
+// #define ONLINE_JUDGE
+#ifndef ONLINE_JUDGE
+#include <heltim7/debug>
+#else
+#define debug(...) 7
+#endif
+
 #define endl '\n'
 using LL=long long;
+
+template<typename I,typename L,I mod> struct Modint {
+    I v;
+    constexpr I pow(L b) const {
+        L res=1,a=v;
+        while(b) { if(b&1) res=res*a%mod; b>>=1; a=a*a%mod; }
+        return res;
+    }
+    constexpr I inv() const { return pow(mod-2); }
+
+    constexpr Modint &operator+=(const Modint &x) { v+=x.v; v-=v>=mod?mod:0; return *this; }
+    constexpr Modint &operator-=(const Modint &x) { v-=x.v; v+=v<0?mod:0; return *this; }
+    constexpr Modint &operator*=(const Modint &x) { v=L(1)*v*x.v%mod; return *this; }
+    constexpr Modint &operator/=(const Modint &x) { v=L(1)*v*x.inv()%mod; return *this; }
+
+    friend constexpr Modint operator+(Modint l,const Modint &r) { return l+=r; }
+    friend constexpr Modint operator-(Modint l,const Modint &r) { return l-=r; }
+    friend constexpr Modint operator*(Modint l,const Modint &r) { return l*=r; }
+    friend constexpr Modint operator/(Modint l,const Modint &r) { return l/=r; }
+    friend constexpr Modint operator-(Modint r) { r.v=mod-r.v; return r; }
+
+    Modint operator++(int) { auto res=*this; ++*this; return res; }
+    Modint operator--(int) { auto res=*this; --*this; return res; }
+    Modint &operator++() { v=v==mod-1?0:v+1; return *this; }
+    Modint &operator--() { v=v?v-1:mod-1; return *this; }
+
+    constexpr bool operator< (const Modint &x) const { return v< x.v; }
+    constexpr bool operator> (const Modint &x) const { return v> x.v; }
+    constexpr bool operator<=(const Modint &x) const { return v<=x.v; }
+    constexpr bool operator>=(const Modint &x) const { return v>=x.v; }
+    constexpr bool operator==(const Modint &x) const { return v==x.v; }
+    constexpr bool operator!=(const Modint &x) const { return v!=x.v; }
+
+    friend istream &operator>>(istream &is,Modint &x) { is>>x.v; x=Modint(x.v); return is; }
+    friend ostream &operator<<(ostream &os,const Modint &x) { return os<<x.v; }
+
+    constexpr Modint(L x=0): v((x%=mod)<0?x+mod:x) {}
+}; using Mint=Modint<int,long long,1000000>;
 
 template<class Node> struct Treap {
     #define lch (tr[u].ch[0])
@@ -146,6 +191,8 @@ template<class Node> struct Treap {
 
     int prev(I key) { return kth(rank(key)-1); }
     int next(I key) { return kth(rank(key,true)); }
+    int prev_equal(I key) { return kth(rank(key,true)-1); }
+    int next_equal(I key) { return kth(rank(key)); }
 
     void clear() {
         root=0;
@@ -153,6 +200,8 @@ template<class Node> struct Treap {
         new_node({});
         tr[0].set_null();
     }
+
+    bool empty() { return root==0; }
 
     Node &operator[](int id) { return tr[id]; }
     I operator[](int id) const { return tr[id]; }
@@ -168,7 +217,7 @@ struct Node {
     int ch[2],prio,sz;
     int val;
 
-    Node(int key=0): val(key) {
+    Node(int val=0): val(val) {
         ch[0]=ch[1]=0;
         prio=rnd();
         sz=1;
@@ -199,20 +248,29 @@ struct Node {
 };
 
 void solve() {
-    Treap<Node> tr(1e5+10);
-
-    int q;
-    cin>>q;
-    while(q--) {
-        int op,x;
-        cin>>op>>x;
-        if(op==1) tr.insert(Node(x));
-        if(op==2) tr.erase(Node(x));
-        if(op==3) cout<<tr.rank(Node(x))<<endl;
-        if(op==4) cout<<tr[tr.kth(x)].val<<endl;
-        if(op==5) cout<<tr[tr.prev(Node(x))].val<<endl;
-        if(op==6) cout<<tr[tr.next(Node(x))].val<<endl;
+    int n;
+    cin>>n;
+    Mint ans;
+    vector<Treap<Node>> tr(2,Treap<Node>(8e4+10));
+    while(n--) {
+        bool x;
+        int y;
+        cin>>x>>y;
+        if(tr[!x].empty()) tr[x].insert(Node(y));
+        else {
+            int r=tr[!x].next_equal(Node(y));
+            int l=tr[!x].prev_equal(Node(y));
+            if(!r||(l&&y-tr[!x][l].val<=tr[!x][r].val-y)) {
+                ans+=y-tr[!x][l].val;
+                tr[!x].erase(tr[!x][l]);
+            }
+            else {
+                ans+=tr[!x][r].val-y;
+                tr[!x].erase(tr[!x][r]);
+            }
+        }
     }
+    cout<<ans<<endl;
 }
 
 int main() {

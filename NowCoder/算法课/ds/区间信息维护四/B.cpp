@@ -2,10 +2,12 @@
 #include <array>
 #include <cassert>
 #include <cstring>
+#include <functional>
 #include <iostream>
 #include <map>
 #include <numeric>
 #include <queue>
+#include <random>
 #include <set>
 #include <tuple>
 #include <vector>
@@ -13,248 +15,208 @@ using namespace std;
 
 #define endl '\n'
 using LL=long long;
-constexpr int N=1e5+10;
 
-template<class Info,class Tag,int MAX_SIZE,
-         bool CHECK_LINK = 0,bool CHECK_CUT = 0,bool ASSERT = 0>
-struct LinkCutTree {
-    #define lch tr[u].ch[0]
-    #define rch tr[u].ch[1]
-    #define wch(u) (tr[tr[u].p].ch[1]==u)
-
-    struct Node {
-        int ch[2],p;
-        bool rev;
-        Info info;
-        Tag tag;
-        void update(const Tag &x) {
-            info.update(x);
-            tag.update(x);
-        }
-    };
-    array<Node, MAX_SIZE> tr;
-    array<int, MAX_SIZE> stk;
-
-    bool is_root(int u) {
-        return tr[tr[u].p].ch[0]!=u&&tr[tr[u].p].ch[1]!=u;
-    }
-
-    void pushup(int u) {
-        tr[u].info.pushup(tr[lch].info,tr[rch].info);
-    }
-
-    void pushrev(int u) {
-        tr[u].info.reverse();
-        swap(lch,rch);
-        tr[u].rev^=1;
-    }
-
-    void pushdn(int u) {
-        if(tr[u].rev) {
-            if(lch) pushrev(lch);
-            if(rch) pushrev(rch);
-            tr[u].rev=0;
-        }
-        if(lch) tr[lch].update(tr[u].tag);
-        if(rch) tr[rch].update(tr[u].tag);
-        tr[u].tag.clear();
-    }
-
-    void rotate(int x) {
-        int y=tr[x].p,z=tr[y].p,k=wch(x);
-        if(!is_root(y)) tr[z].ch[wch(y)]=x;
-        tr[y].ch[k]=tr[x].ch[!k],tr[tr[y].ch[k]].p=y;
-        tr[x].ch[!k]=y,tr[y].p=x,tr[x].p=z;
-        pushup(y),pushup(x);
-    }
-
-    void splay(int u) {
-        int top=0,fa=u;
-        stk[++top]=fa;
-        while(!is_root(fa)) stk[++top]=fa=tr[fa].p;
-        while(top) pushdn(stk[top--]);
-        for(;!is_root(u);rotate(u))
-            if(!is_root(fa=tr[u].p)) rotate(wch(u)==wch(fa)?fa:u);
-    }
-
-    int access(int u) {
-        int v=0;
-        for(;u;v=u,u=tr[u].p)
-            splay(u),rch=v,pushup(u);
-        return v;
-    }
-
-    void make_root(int u) {
-        access(u);
-        splay(u);
-        pushrev(u);
-    }
-
-    int split(int u,int v) {
-        make_root(u);
-        access(v);
-        splay(v);
-        return v;
-    }
-
-    int find_root(int u) {
-        access(u);
-        splay(u);
-        while(lch) pushdn(u),u=lch;
-        splay(u);
-        return u;
-    }
-
-    bool same(int u,int v) {
-        make_root(u);
-        return find_root(v)==u;
-    }
-
-    bool link(int u,int v) {
-        make_root(u);
-        if(CHECK_LINK&&find_root(v)==u)
-            return assert(!ASSERT),0;
-        tr[u].p=v;
-        return 1;
-    }
-
-    bool cut(int u,int v) {
-        make_root(u);
-        if(CHECK_CUT&&!(find_root(v)==u&&rch==v&&!tr[v].ch[0]))
-            return assert(!ASSERT),0;
-        else access(v),splay(u);
-        rch=tr[v].p=0;
-        pushup(u);
-        return 1;
-    }
-
-    int lca(int u,int v) {
-        access(u);
-        return access(v);
-    }
-
-    int lca(int rt,int u,int v) {
-        make_root(rt);
-        return lca(u,v);
-    }
-
-    void modify(int u,const Tag &x) {
-        if(!is_root(u)) splay(u);
-        tr[u].update(x);
-    }
-
-    Info &info(int u) {
-        return tr[u].info;
-    }
-
-    #undef lch
-    #undef rch
-    #undef wch
-};
-
-struct SplayTree {
-    #define lch tr[u].ch[0]
-    #define rch tr[u].ch[1]
-    #define wch(u) (tr[tr[u].p].ch[1]==u)
-
-    struct Node {
-        int ch[2],p;
-        bool rev;
-        int val,cnt,sz;
-    };
+template<class Node> struct Treap {
+    #define lch (tr[u].ch[0])
+    #define rch (tr[u].ch[1])
+    using I=const Node&;
     vector<Node> tr;
     int root;
 
-    int new_node() {
-        tr.push_back({});
+    int new_node(I x) {
+        tr.emplace_back(x);
         return tr.size()-1;
     }
 
     void pushup(int u) {
-        tr[u].sz=tr[lch].sz+tr[rch].sz+tr[u].cnt;
+        tr[u].pushup(tr[lch], tr[rch]);
     }
 
-    void rotate(int x) {
-        int y=tr[x].p,z=tr[y].p,k=wch(x);
-        if(z) tr[z].ch[wch(y)]=x;
-        tr[y].ch[k]=tr[x].ch[!k],tr[tr[y].ch[k]].p=y;
-        tr[x].ch[!k]=y,tr[y].p=x,tr[x].p=z;
-        pushup(y),pushup(x);
+    void pushdn(int u) {
+        tr[lch].update(tr[u]);
+        tr[rch].update(tr[u]);
+        tr[u].clear_tag();
     }
 
-    int splay(int u) {
-        for(int fa=u;tr[u].p;rotate(u))
-            if(tr[fa=tr[u].p].p) rotate(wch(u)==wch(fa)?fa:u);
-        return root=u;
-    }
-
-    void insert(int k) {
-        if(!root) {
-            int u=root=new_node();
-            tr[u].sz=1;
-            tr[u].cnt=1;
-            tr[u].val=k;
-            return;
+    pair<int,int> split_by_key(int u,I key,bool le=true) {
+        if(!u) return {};
+        pushdn(u);
+        if(tr[u]<key||le&&!(key<tr[u])) {
+            auto [l,r]=split_by_key(rch, key, le);
+            rch=l;
+            pushup(u);
+            return {u,r};
         }
-        for(int u=root,fa=0;;) {
-            if(tr[u].val==k) {
-                tr[u].cnt++;
-                pushup(u);
-                pushup(fa); //?
-                splay(u);
-                break;
-            }
-
-            fa=u;
-            u=tr[u].ch[k>tr[u].val];
-            if(!u) {
-                u=new_node();
-                tr[u].cnt=1;
-                tr[u].val=k;
-                tr[u].p=fa;
-                tr[fa].ch[k>tr[fa].val]=u;
-                pushup(u);
-                pushup(fa); //?
-                splay(u);
-                break;
-            }
+        else {
+            auto [l,r]=split_by_key(lch, key, le);
+            lch=r;
+            pushup(u);
+            return {l,u};
         }
     }
+    tuple<int,int,int> extract_by_key(int u,I lkey,I rkey) {
+        auto [t,r]=split_by_key(u, rkey);
+        auto [l,m]=split_by_key(t, lkey, false);
+        return {l,m,r};
+    }
 
-    int kth(int k) {
-        for(int u=root;;) {
-            if(lch&&k<=tr[lch].sz) u=lch;
-            else {
-                k-=tr[lch].sz+tr[u].cnt;
-                if(k<=0) return splay(u);
-                k=rch;
-            }
+    pair<int,int> split_by_rank(int u,int rk) {
+        if(!u) return {};
+        pushdn(u);
+        if(tr[lch].sz+1<=rk) {
+            auto [l,r]=split_by_rank(rch, rk-tr[lch].sz-1);
+            rch=l;
+            pushup(u);
+            return {u,r};
+        }
+        else {
+            auto [l,r]=split_by_rank(lch, rk);
+            lch=r;
+            pushup(u);
+            return {l,u};
+        }
+    }
+    tuple<int,int,int> extract_by_rank(int u,int lrk,int rrk) {
+        auto [t,r]=split_by_rank(u, rrk);
+        auto [l,m]=split_by_rank(t, lrk-1);
+        return {l,m,r};
+    }
+
+    int merge(int u,int v) {
+        if(!u||!v) return u|v;
+        pushdn(u);pushdn(v);
+        if(tr[u].prio<tr[v].prio) {
+            tr[u].ch[1]=merge(tr[u].ch[1], v);
+            pushup(u);
+            return u;
+        }
+        else {
+            tr[v].ch[0]=merge(u, tr[v].ch[0]);
+            pushup(v);
+            return v;
+        }
+    }
+    int merge(int x,int y,int z) {
+        return merge(merge(x,y),z);
+    }
+
+    int find(int u,I key) {
+        if(!u||!(tr[u]<key)&&!(key<tr[u])) return u;
+        pushdn(u);
+        if(key<tr[u]) return find(lch,key);
+        return find(rch,key);
+    }
+
+    void insert(I key) {
+        int u=new_node(key);
+        auto [l,r]=split_by_key(root, key);
+        root=merge(l,u,r);
+    }
+
+    void erase(I key) {
+        if(find(root,key)) {
+            auto [l,t]=split_by_key(root, key, false);
+            auto [m,r]=split_by_rank(t, 1);
+            root=merge(l,r);
         }
     }
 
-    int rank(int val) {
-        for(int rk=0,u=root;;) {
-            if(lch&&val<tr[u].val) u=lch;
-            else {
-                rk+=tr[lch].sz;
-                if(val==tr[u].val) return splay(u),rk+1;
-                rk+=tr[u].cnt;
-                u=rch;
-            }
-        }
+    template<class F> int build(int l,int r,F f) {
+        if(l>r) return 0;
+        int m=(l+r)/2;
+        int u=new_node(f(m));
+        lch=build(l,m-1,f);
+        rch=build(m+1,r,f);
+        pushup(u);
+        return u;
     }
 
-    int prev() {
-         
+    int rank(I key,bool le=false) {
+        auto [l,r]=split_by_key(root, key, le);
+        int rk=tr[l].sz+1;
+        root=merge(l,r);
+        return rk;
+    }
+
+    int kth(int rk) {
+        auto [l,m,r]=extract_by_rank(root, rk, rk);
+        root=merge(l,m,r);
+        return m;
+    }
+
+    int prev(I key) { return kth(rank(key)-1); }
+    int next(I key) { return kth(rank(key,true)); }
+
+    void clear() {
+        root=0;
+        tr.clear();
+        new_node({});
+        tr[0].set_null();
+    }
+
+    Node &operator[](int id) { return tr[id]; }
+    I operator[](int id) const { return tr[id]; }
+
+    Treap(int sz=0) { tr.reserve(sz),clear(); }
+
+    #undef lch
+    #undef rch
+};
+
+auto rnd=mt19937(random_device()());
+struct Node {
+    int ch[2],prio,sz;
+    int val;
+
+    Node(int key=0): val(key) {
+        ch[0]=ch[1]=0;
+        prio=rnd();
+        sz=1;
+    }
+
+    void set_null() {
+        sz=0;
+    }
+
+    // lch + par + rch
+    void pushup(const Node &l,const Node &r) {
+        sz=l.sz+1+r.sz;
+    }
+
+    // update info and lazy tag
+    void update(const Node &p) {
+
+    }
+
+    // clear lazy tag
+    void clear_tag() {
+
+    }
+
+    bool operator<(const Node &r) const {
+        return val<r.val;
     }
 };
 
 void solve() {
-    
+    Treap<Node> tr(1e5+10);
+
+    int q;
+    cin>>q;
+    while(q--) {
+        int op,x;
+        cin>>op>>x;
+        if(op==1) tr.insert(Node(x));
+        if(op==2) tr.erase(Node(x));
+        if(op==3) cout<<tr.rank(Node(x))<<endl;
+        if(op==4) cout<<tr[tr.kth(x)].val<<endl;
+        if(op==5) cout<<tr[tr.prev(Node(x))].val<<endl;
+        if(op==6) cout<<tr[tr.next(Node(x))].val<<endl;
+    }
 }
 
 int main() {
-    ios::sync_with_stdio(0);
+    ios::sync_with_stdio(false);
     cin.tie(nullptr);
     solve();
     return 0;
