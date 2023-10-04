@@ -45,37 +45,49 @@ namespace fast_io {
         operator>>(IO &io, T& x) { rd(x); return io; }
     } static io;
 }
-using fast_io::io;
+using fast_io::io,fast_io::read;
 
-struct CartesianTree {
-    vector<int> lch,rch;
-    int root;
+template<typename T=int> struct CartesianTree {
+	vector<int> lch,rch,stk;
+	vector<T> val;
+	int root,idx;
 
-    void build(const vector<int> &v) {
-        int n=v.size(),top=0;
-        vector<int> stk(n+1);
-        lch.resize(n+1);
-        rch.resize(n+1);
+	void extend(int x) {
+		idx++;
+		lch.emplace_back(0);
+		rch.emplace_back(0);
+		val.emplace_back(x);
+		
+		while(stk.size()&&val[stk.back()]>x) {
+			lch[idx]=stk.back();
+			stk.pop_back();
+		}
+		if(stk.size()) rch[stk.back()]=idx;
+		else root=idx;
+		stk.emplace_back(idx);
+	}
 
-        for(int i=1;i<=n;i++) {
-            int k=top;
-            while(k&&v[stk[k]-1]>v[i-1]) k--;
-            if(k) rch[stk[k]]=i;
-            else root=i;
-            if(k<top) lch[i]=stk[k+1];
-            stk[++k]=i;
-            top=k;
-        }
-    }
+	void clear() {
+		root=idx=0;
+		lch.assign(1,{});
+		rch.assign(1,{});
+		val.assign(1,{});
+		stk.clear();
+	}
+
+	CartesianTree(int sz=0) {
+		lch.reserve(sz+1);
+		rch.reserve(sz+1);
+		val.reserve(sz+1);
+		stk.reserve(sz+1);
+		clear();
+	}
 };
 
 void solve() {
-    int n;
-    io>>n;
-    vector<int> p(n);
-    for(int &x:p) io>>x;
-    CartesianTree tr;
-    tr.build(p);
+    int n=read(n);
+    CartesianTree<> tr(n);
+    for(int i=1,in;i<=n;i++) tr.extend(read(in));
     LL l=0,r=0;
     for(int i=1;i<=n;i++) {
         l^=1LL*i*(tr.lch[i]+1);
