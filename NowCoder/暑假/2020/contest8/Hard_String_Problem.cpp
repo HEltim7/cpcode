@@ -190,12 +190,11 @@ void solve() {
         auto &&z=zfunc(x);
         int mn=x.size();
         for(int i=1;i<z.size();i++) {
-            if(z[i]==x.size()-i) {
+            if(x.size()%i==0&&z[i]==x.size()-i) {
                 mn=i;
                 break;
             }
         }
-
         string t=x.substr(0,mn);
         return t;
     };
