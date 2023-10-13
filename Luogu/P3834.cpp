@@ -1,93 +1,144 @@
-#include <vector>
-#include <iostream>
 #include <algorithm>
+#include <array>
 #include <cassert>
+#include <cstring>
+#include <functional>
+#include <iostream>
+#include <limits>
+#include <map>
+#include <numeric>
+#include <queue>
+#include <set>
+#include <tuple>
+#include <vector>
 using namespace std;
 
 #define endl '\n'
 using LL=long long;
-constexpr int N=2e5+10;
-int root[N],arr[N];
 
-struct PersistentSegmentTree {
-
-    #define lch tr[u].ch[0]
-    #define rch tr[u].ch[1]
-    constexpr static int MAX_SIZE=N*20*2;
-
-    struct Node {
-        int ch[2];
-        int cnt;
-    } tr[MAX_SIZE];
-    int idx;
+template<class Info> struct PersistentSegmentTree {
+    int L,R;
+    vector<int> lch,rch;
+    vector<Info> info;
 
     int new_node() {
-        assert(idx<MAX_SIZE);
-        return ++idx;
+        lch.emplace_back();
+        rch.emplace_back();
+        info.emplace_back();
+        return info.size()-1;
+    }
+
+    void clone(int v,int u) {
+        info[u]=info[v];
+        lch[u]=lch[v];
+        rch[u]=rch[v];
     }
 
     void pushup(int u) {
-        tr[u].cnt=tr[lch].cnt+tr[rch].cnt;
+        info[u]=info[lch[u]]+info[rch[u]];
     }
 
-    void modify(int &u,int v,int l,int r,int p) {
-        u=new_node();
-        tr[u]=tr[v];
-        if(l==r) tr[u].cnt++;
+    Info query(int u,int l,int r,int x,int y) {
+        if(!u||l>y||r<x) return {};
+        if(l>=x&&r<=y) return info[u];
+        int m=l+(r-l)/2;
+        return query(lch[u],l,m,x,y)+query(rch[u],m+1,r,x,y);
+    }
+    Info query(int rt,int l,int r) { return query(rt,L,R,l,r); }
+
+    Info query(int v,int u,int l,int r,int x,int y) {
+        if(!u||l>y||r<x) return {};
+        if(l>=x&&r<=y) return info[u]-info[v];
+        int m=l+(r-l)/2;
+        return query(lch[v],lch[u],l,m,x,y)+
+            query(rch[v],rch[u],m+1,r,x,y);
+    }
+    Info query(int lrt,int rrt,int l,int r) {
+        return query(lrt,rrt,L,R,l,r);
+    }
+
+    constexpr static int nil=numeric_limits<int>::min();
+    template<class F> int find_first(int v,int u,int l,int r,Info p,F f) {
+        if(!u) return nil;
+        if(l==r) return l;
+        int m=l+(r-l)/2;
+        Info t=p+(info[lch[u]]-info[lch[v]]);
+        if(f(t)) return find_first(lch[v],lch[u],l,m,p,f);
+        return find_first(rch[v],rch[u],m+1,r,t,f);
+    }
+    template<class F> int find_first(int lrt,int rrt,F f) {
+        return f(info[rrt]-info[lrt])?find_first(lrt,rrt,L,R,{},f):nil;
+    }
+
+    int modify(int v,int l,int r,int p,const Info &val) {
+        int u=new_node();
+        if(v) clone(v,u);
+        else info[u].init(l,r);
+        if(l==r) info[u].update(val);
         else {
-            int mid=l+r>>1;
-            if(p<=mid) modify(lch, tr[v].ch[0], l, mid, p);
-            else modify(rch, tr[v].ch[1], mid+1, r, p);
+            int m=l+(r-l)/2;
+            if(p<=m) lch[u]=modify(lch[v],l,m,p,val);
+            else rch[u]=modify(rch[v],m+1,r,p,val);
             pushup(u);
         }
+        return u;
+    }
+    int modify(int rt,int p,const Info &val) {
+        return modify(rt,L,R,p,val);
     }
 
-    int kth(int u,int v,int l,int r,int k) {
-        if(l==r) return l;
-        int mid=l+r>>1;
-        int lcnt=tr[lch].cnt-tr[tr[v].ch[0]].cnt;
-        if(lcnt>=k) return kth(lch, tr[v].ch[0], l, mid, k);
-        return kth(rch, tr[v].ch[1], mid+1, r, k-lcnt);
+    PersistentSegmentTree(int l,int r,int sz=0):L(l),R(r) {
+        lch.reserve(sz),rch.reserve(sz),info.reserve(sz);
+        new_node();
+    }
+};
+
+struct Info {
+    int cnt=0;
+
+    void init(int l,int r) {
+        if(l!=r) return;
+        cnt=0;
     }
 
-    void build(int &u,int l,int r) {
-        u=new_node();
-        tr[u]={l,r};
-        if(l!=r) {
-            int mid=l+r>>1;
-            build(lch,l,mid);
-            build(rch,mid+1,r);
-        }
+    friend Info operator+(const Info &l,const Info &r) {
+        Info res;
+        res.cnt=l.cnt+r.cnt;
+        return res;
+    }
+    
+    friend Info operator-(const Info &l,const Info &r) {
+        Info res;
+        res.cnt=l.cnt-r.cnt;
+        return res;
     }
 
-    #undef lch
-    #undef rch
-
-} sgt;
+    void update(const Info &v) {
+        cnt+=v.cnt;
+    }
+};
 
 void solve() {
     int n,q;
     cin>>n>>q;
-    
-    vector<int> num;
-    for(int i=1;i<=n;i++) cin>>arr[i],num.push_back(arr[i]);
-    n=num.size();
-    sort(num.begin(),num.end());
-    num.erase(unique(num.begin(),num.end()),num.end());
-    for(int i=1;i<=n;i++) 
-        arr[i]=lower_bound(num.begin(),num.end(),arr[i])-num.begin()+1;
-    
-    sgt.build(root[0], 1, n);
-    for(int i=1;i<=n;i++) sgt.modify(root[i], root[i-1], 1, n, arr[i]);
+    PersistentSegmentTree<Info> sgt(-1e9,1e9,1e7);
+    vector<int> rt(n+1),arr(n+1);
+    for(int i=1;i<=n;i++) {
+        cin>>arr[i];
+        rt[i]=sgt.modify(rt[i-1],arr[i],{1});
+    }
+
     while(q--) {
         int l,r,k;
         cin>>l>>r>>k;
-        cout<<num[sgt.kth(root[r], root[l-1], 1, n, k)-1]<<endl;
+        cout<<sgt.find_first(
+            rt[l-1],rt[r],[&](const Info &x) { return x.cnt>=k; }
+        )<<endl;
     }
 }
 
 int main() {
-    ios::sync_with_stdio(0);
+    ios::sync_with_stdio(false);
     cin.tie(nullptr);
     solve();
     return 0;
