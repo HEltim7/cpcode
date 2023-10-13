@@ -17,15 +17,10 @@ struct GeneralSuffixAutomaton {
         int link,len;
         Arr ch;
     };
-    vector<Endpos> edp;
     vector<Arr> tr;
+    vector<Endpos> edp;
 
-    void init() {
-        edp.clear(),edp.push_back({-1});
-        tr.clear(),tr.push_back({});
-    }
-
-    int new_node() { tr.push_back({}); return tr.size()-1; }
+    int new_tr() { tr.push_back({}); return tr.size()-1; }
     int new_edp() { edp.push_back({}); return edp.size()-1; }
 
     int split(int p,int c,int len) {
@@ -47,7 +42,7 @@ struct GeneralSuffixAutomaton {
         int last;
         if(tr[t][c]) last=edp[p].ch[c];
         else {
-            tr[t][c]=new_node();
+            tr[t][c]=new_tr();
             if(edp[p].ch[c]) last=split(p, c, len);
             else {
                 int cur=last=new_edp();
@@ -61,30 +56,33 @@ struct GeneralSuffixAutomaton {
         p=last;
     }
 
-    void extend(string &s) {
+    void insert(string &s) {
         for(int p=0,t=0,i=0;i<s.size();i++) extend(p, t, s[i], i+1);
     }
 
+    int size() { return edp.size(); }
+    
+    void clear() {
+        edp.clear(),edp.push_back({-1});
+        tr.clear(),tr.push_back({});
+    }
+    
     LL solve() {
         LL res=0;
         for(int i=1;i<size();i++) 
             res+=edp[i].len-edp[edp[i].link].len;
         return res;
     }
-
-    int size() { return edp.size(); }
-    void clear() { init(); }
     
-    GeneralSuffixAutomaton() { init(); }
-    GeneralSuffixAutomaton(int sz) { edp.reserve(sz),tr.reserve(sz),init(); }
-} sam(N);
+    GeneralSuffixAutomaton(int sz=0) { edp.reserve(sz),tr.reserve(sz),clear(); }
+} sam;
 
 void solve() {
     int n;
     cin>>n;
     string s;
-    for(int i=1;i<=n;i++) cin>>s,sam.extend(s);
-    cout<<sam.solve();
+    for(int i=1;i<=n;i++) cin>>s,sam.insert(s);
+    cout<<sam.solve()<<endl<<sam.size();
 }
 
 int main() {
