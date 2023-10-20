@@ -12,20 +12,12 @@
 #include <vector>
 using namespace std;
 
-// #define ONLINE_JUDGE
-#ifndef ONLINE_JUDGE
-#include <heltim7/debug>
-#else
-#define debug(...) 7
-#endif
-
 #define endl '\n'
 using LL=long long;
 
 void solve() {
     int n;
     cin>>n;
-    map<int,int> mp;
     vector<int> arr(n);
     for(int &x:arr) cin>>x;
     LL sum=accumulate(arr.begin(),arr.end(),0LL);
@@ -34,13 +26,28 @@ void solve() {
         return;
     }
 
+    auto lowbit=[&](int x) {
+        return __lg(x&(-x));
+    };
+
     int avg=sum/n;
-    for(int x:arr) mp[x-avg]++;
-    debug(avg);
-    debug(mp);
-    for(auto [x,y]:mp) {
-        auto it=mp.find(-x);
-        if(it==mp.end()||it->second!=y) {
+    vector<int> cnt(64);
+    for(int x:arr) {
+        if(x!=avg) {
+            int t=abs(x-avg);
+            for(int i=lowbit(t)+1;i<__lg(t);i++) {
+                if(t>>i&1^1) {
+                    cout<<"No"<<endl;
+                    return;
+                }
+            }
+            if(x>avg) cnt[__lg(t)+1]++,cnt[lowbit(t)]--;
+            else cnt[__lg(t)+1]--,cnt[lowbit(t)]++;
+        }
+    }
+
+    for(int x:cnt) {
+        if(x) {
             cout<<"No"<<endl;
             return;
         }
