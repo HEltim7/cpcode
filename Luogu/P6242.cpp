@@ -11,80 +11,17 @@
 #include <vector>
 using namespace std;
 
+// #define ONLINE_JUDGE
+#ifndef ONLINE_JUDGE
+#include <heltim7/debug>
+#else
+#define debug(...) 7
+#endif
+
 #define endl '\n'
 using LL=long long;
 constexpr int N=5e5+10,INF=1e9;
-
-template<class Info,class Tag,int size> struct SegmentTree {
-    #define lch ((u)<<1)
-    #define rch ((u)<<1|1)
-
-    int rng_l,rng_r;
-    constexpr static int node_size=1<<__lg(size)<<2|1;
-    array<Tag, node_size> tag;
-    array<Info, node_size> info;
-    array<bool, node_size> clean;
-
-    void pushup(int u) {
-        info[u]=info[lch]+info[rch];
-    }
-
-    void update(int u, const Tag &t) {
-        info[u]+=t;
-        tag[u]+=t;
-        clean[u]=0;
-    }
-
-    void pushdn(int u) {
-        if(clean[u]) return;
-        update(lch, tag[u]);
-        update(rch, tag[u]);
-        clean[u]=1;
-        tag[u].clear();
-    }
-
-    Info query(int u,int l,int r,int x,int y) {
-        if(l>y||r<x) return {};
-        if(l>=x&&r<=y) return info[u];
-        pushdn(u);
-        int mid=(l+r)/2;
-        return query(lch,l,mid,x,y)+query(rch,mid+1,r,x,y);
-    }
-    Info query(int l,int r) { return query(1,rng_l,rng_r,l,r); }
-
-    void modify(int u,int l,int r,int x,int y,const Tag &t) {
-        if(l>y||r<x) return;
-        if(l>=x&&r<=y) update(u, t);
-        else {
-            pushdn(u);
-            int mid=(l+r)/2;
-            if(mid>=x) modify(lch,l,mid,x,y,t);
-            if(mid<y) modify(rch,mid+1,r,x,y,t);
-            pushup(u);
-        }
-    }
-    void modify(int l,int r,const Tag &t) { modify(1,rng_l,rng_r,l,r,t); }
-
-    void modify_min(int u,int l,int r,int val) {
-
-    }
-
-    void build(int u,int l,int r) {
-        clean[u]=1;
-        info[u].init(l,r);
-        tag[u].clear();
-        if(l!=r) {
-            int mid=(l+r)/2;
-            build(lch,l,mid);
-            build(rch,mid+1,r);
-            pushup(u);
-        }
-    }
-    void build(int l=1,int r=size) { build(1,rng_l=l,rng_r=r); }
-
-    #undef lch
-    #undef rch
-};
+int arr[N];
 
 struct Tag {
     // add1=区间最大值加法标记
@@ -106,19 +43,15 @@ struct Tag {
         add1=add2=addhis1=addhis2=0;
     }
 
+    // 如果当前最大值就等于父节点最大值
+    // 保持不变即可 add1,add2,addhis1,addhis2
+    // 否则当前需要修改的量不论是否最值都是相等的
+    // 变为 add2,add2,addhis2,addhis2
     void update(const Tag &t) {
         addhis1=max(addhis1,add1+t.addhis1);
         addhis2=max(addhis2,add2+t.addhis2);
         add1+=t.add1;
         add2+=t.add2;
-    }
-
-    Tag &operator+=(const Tag &t) {
-        // 如果当前最大值就等于父节点最大值
-        // 保持不变即可 add1,add2,addhis1,addhis2
-        // 否则当前需要修改的量不论是否最值都是相等的
-        // 变为 add2,add2,addhis2,addhis2
-        return *this;
     }
 };
 
@@ -128,12 +61,14 @@ struct Info {
 
     void init(int l,int r) {
         if(l!=r) return;
-
+        sum=max1=maxhis=arr[l];
+        len=cnt=1;
     }
     void init(int l) { init(l,l); }
 
     friend Info operator+(const Info &l,const Info &r) {
         Info res;
+        res.len=l.len+r.len;
         res.sum=l.sum+r.sum;
         res.max1=max(l.max1,r.max1);
         res.maxhis=max(l.maxhis,r.maxhis);
@@ -165,10 +100,114 @@ struct Info {
     }
 };
 
-SegmentTree<Info, Tag, N> sgt;
+struct SegmentTree {
+    #define lch ((u)<<1)
+    #define rch ((u)<<1|1)
+
+    int rng_l,rng_r;
+    constexpr static int size=N;
+    constexpr static int node_size=1<<__lg(size)<<2|1;
+    array<Tag, node_size> tag;
+    array<Info, node_size> info;
+    array<bool, node_size> clean;
+
+    void pushup(int u) {
+        info[u]=info[lch]+info[rch];
+    }
+
+    void update_max1(int u, const Tag &t) {
+        info[u]+=t;
+        tag[u].update(t);
+        clean[u]=0;
+    }
+
+    void update_max2(int u,const Tag &t) {
+        info[u]+=Tag{t.add2,t.add2,t.addhis2,t.addhis2};
+        tag[u].update(Tag{t.add2,t.add2,t.addhis2,t.addhis2});
+        clean[u]=0;
+    }
+
+    void pushdn(int u) {
+        if(clean[u]) return;
+        int maxx=max(info[lch].max1,info[rch].max1);
+        if(maxx==info[lch].max1) update_max1(lch,tag[u]);
+        else update_max2(lch,tag[u]);
+        if(maxx==info[rch].max1) update_max1(rch,tag[u]);
+        else update_max2(rch,tag[u]);
+        clean[u]=1;
+        tag[u].clear();
+    }
+
+    Info query(int u,int l,int r,int x,int y) {
+        if(l>y||r<x) return {};
+        if(l>=x&&r<=y) return info[u];
+        pushdn(u);
+        int mid=(l+r)/2;
+        return query(lch,l,mid,x,y)+query(rch,mid+1,r,x,y);
+    }
+    Info query(int l,int r) { return query(1,rng_l,rng_r,l,r); }
+
+    void add(int u,int l,int r,int x,int y,LL val) {
+        if(l>y||r<x) return;
+        else if(l>=x&&r<=y) update_max1(u, Tag{val,val,val,val});
+        else {
+            pushdn(u);
+            int mid=(l+r)/2;
+            add(lch, l, mid, x, y, val);
+            add(rch, mid+1, r, x, y, val);
+            pushup(u);
+        }
+    }
+
+    void chmin(int u,int l,int r,int x,int y,LL val) {
+        if(l>y||r<x||val>=info[u].max1) return;
+        if(l>=x&&r<=y&&val>info[u].max2) {
+            LL k=val-info[u].max1;
+            info[u].sum+=k*info[u].cnt;
+            info[u].max1=val;
+            tag[u].add1+=k;
+            clean[u]=0;
+            return;
+        }
+        pushdn(u);
+        int mid=(l+r)/2;
+        chmin(lch,l,mid,x,y,val);
+        chmin(rch,mid+1,r,x,y,val);
+        pushup(u);
+    }
+
+    void build(int u,int l,int r) {
+        clean[u]=1;
+        info[u].init(l,r);
+        tag[u].clear();
+        if(l!=r) {
+            int mid=(l+r)/2;
+            build(lch,l,mid);
+            build(rch,mid+1,r);
+            pushup(u);
+        }
+    }
+    void build(int l=1,int r=size) { build(1,rng_l=l,rng_r=r); }
+
+    #undef lch
+    #undef rch
+} sgt;
 
 void solve() {
-    
+    int n,m;
+    cin>>n>>m;
+    for(int i=1;i<=n;i++) cin>>arr[i];
+    sgt.build(1,n);
+    while(m--) {
+        int op,l,r,k;
+        cin>>op>>l>>r;
+        if(op<=2) cin>>k;
+        if(op==1) sgt.add(1, 1, n, l, r, k);
+        else if(op==2) sgt.chmin(1, 1, n, l, r, k);
+        else if(op==3) cout<<sgt.query(l, r).sum<<endl;
+        else if(op==4) cout<<sgt.query(l, r).max1<<endl;
+        else cout<<sgt.query(l, r).maxhis<<endl;
+    }
 }
 
 int main() {
