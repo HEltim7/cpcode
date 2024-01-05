@@ -31,7 +31,7 @@ void solve() {
     constexpr int N=1e5,B=320,C=N/B+1;
     using Query=tuple<int,int,int,int>;
     vector<Query> query;
-    vector<int> ans(q+1),id(q+1),ed(q+1);
+    vector<int> ans(q+1),id(n+1),ed(n+1);
 
     int idx=0;
     function<void(int,int)> dfs=[&](int u,int fa) {
