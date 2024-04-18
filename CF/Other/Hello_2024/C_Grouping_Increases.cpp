@@ -16,17 +16,26 @@ using namespace std;
 using LL=long long;
 
 void solve() {
-    int n,k,d;
-    cin>>n>>k>>d;
-    vector<int> arr(n+1),b(k);
-    for(int i=1;i<=n;i++) cin>>arr[i];
-    for(int &x:b) cin>>x;
+    int n;
+    cin>>n;
     int ans=0;
-    for(int i=0,j=0;i<=min(3*n,d-1);i++,j=(j+1)%k) {
-        int res=0;
-        for(int l=1;l<=n;l++) res+=arr[l]==l;
-        for(int l=1;l<=b[j];l++) arr[l]++;
-        ans=max(ans,res+(d-i-1)/2);
+    int s=1e9,t=1e9;
+    for(int i=1;i<=n;i++) {
+        int in;
+        cin>>in;
+        bool x=s>=in;
+        bool y=t>=in;
+        if(x&&y) {
+            if(s>=t) t=in;
+            else s=in;
+        }
+        else if(x) s=in;
+        else if(y) t=in;
+        else {
+            ans++;
+            if(s<=t) s=in;
+            else t=in;
+        }
     }
     cout<<ans<<endl;
 }

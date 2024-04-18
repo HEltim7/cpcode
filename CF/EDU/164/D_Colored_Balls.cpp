@@ -15,46 +15,6 @@ using namespace std;
 #define endl '\n'
 using LL=long long;
 
-template<typename T=int,T init=T()> struct Fenwick {
-    using F=function<void(T&,const T&)>;
-    F add,sub;
-    vector<T> tr;
-
-    int lowbit(int x) { return x&(-x); }
-    void resize(int n) { tr.resize(n+2,init); }
-
-    void modify(int pos,T val) {
-        if(++pos<=0) return;
-        while(pos<tr.size()) add(tr[pos],val),pos+=lowbit(pos);
-    }
-
-    void reset(int pos) {
-        if(++pos<=0) return;
-        while(pos<tr.size()) tr[pos]=init,pos+=lowbit(pos);
-    }
-
-    T query(int pos) {
-        if(++pos<0) return init;
-        T res=init;
-        while(pos) add(res,tr[pos]),pos-=lowbit(pos);
-        return res;
-    }
-    
-    T range_query(int l,int r) {
-        T res=query(r);
-        sub(res,query(l-1));
-        return res;
-    }
-
-    explicit Fenwick(
-        int n,
-        F add=[](T &x,const T &y) { x+=y; },
-        F sub=[](T &x,const T &y) { x-=y; })
-        : add(add),sub(sub) {
-        resize(n);
-    }
-};
-
 template<typename I,typename L,I mod> struct Modint {
     I v;
     constexpr I _pow(L k) const {
@@ -95,56 +55,40 @@ template<typename I,typename L,I mod> struct Modint {
     constexpr Modint(L x=0): v((x%=mod)<0?x+mod:x) {}
 }; using Mint=Modint<int,long long,998244353>;
 
+// #define ONLINE_JUDGE
+#ifndef ONLINE_JUDGE
+#include <heltim7/debug>
+#else
+#define debug(...) 7
+#endif
+
 void solve() {
-    int n,k;
-    cin>>n>>k;
-    vector<int> p(n),q(k);
-    for(int &x:p) cin>>x;
-    for(int &x:q) cin>>x;
-    Fenwick<> tr(k);
-    Mint ans;
-    for(int i=0;i<k;i++) {
-        tr.modify(q[i], 1);
-        ans+=i+1-tr.query(q[i]);
-    }
-    ans*=n;
-
-    auto div=[&](int x,int y) {
-        return (x+y-1)/y;
-    };
-
-    auto cal=[&](Mint x) {
-        return x*(x+1)/2;
-    };
-
-    auto sol=[&](bool inv) {
-        Mint res;
-        tr=Fenwick<>(2*n-1);
-        for(int x:p) {
-            for(int pw=1;;pw++) {
-                int l=div(x,1<<pw);
-                int r=div(x,1<<(pw-1))-1;
-                if(l>r) break;
-                Mint t=tr.range_query(l, r);
-                if(inv) res+=(Mint(k).pow(2)-cal(max(0,k-pw)))*t;
-                else res+=cal(max(0,k-pw))*t;
+    int n;
+    cin>>n;
+    vector<int> arr(n+1);
+    for(int i=1;i<=n;i++) cin>>arr[i];
+    sort(arr.begin()+1,arr.end());
+    int sum=accumulate(arr.begin()+1,arr.end(),0);
+    auto dp=vector(n+10,vector(sum+10,Mint{}));
+    dp[0][0]=1;
+    Mint res;
+    for(int i=1;i<=n;i++) {
+        for(int j=0;j<=sum;j++) {
+            dp[i][j]=dp[i-1][j];
+            int left=j-arr[i];
+            if(left>=0) {
+                dp[i][j]+=dp[i-1][left];
+                if(arr[i]<=left) res+=(j+1)/2*dp[i-1][left];
+                else res+=arr[i]*dp[i-1][left];
             }
-            tr.modify(x, 1);
         }
-        return res;
-    };
-
-    ans+=sol(0);
-    reverse(p.begin(),p.end());
-    ans+=sol(1);
-    cout<<ans<<endl;
+    }
+    cout<<res<<endl;
 }
 
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
-    int t;
-    cin>>t;
-    while(t--) solve();
+    solve();
     return 0;
 }
